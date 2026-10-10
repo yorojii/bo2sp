@@ -14,7 +14,7 @@ for source in (build/'_internal').rglob('*'):
     target=root/'_internal'/source.relative_to(build/'_internal')
     if not target.is_file() or source.read_bytes()!=target.read_bytes():
         target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target)
-for name in ('runtime.py','runtime_app.py','library.py','mw2_assets.py','camera.py','live_target.py','replay_hotkey.py'):
+for name in ('runtime.py','runtime_app.py','library.py','mw2_assets.py','camera.py','live_target.py','replay_hotkey.py','freelook.py'):
     shutil.copy2(workspace/'work/porter'/name,root/'source'/name)
 shutil.copy2(workspace/'work/README-v2.txt',root/'README.txt')
 report=json.loads((root/'Validation.json').read_text())
