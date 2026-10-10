@@ -46,6 +46,6 @@ assert (root/'Yoroji Tool.exe').read_bytes()==(build/'Yoroji Tool.exe').read_byt
 catalog=json.loads((root/'library/catalog.json').read_text())
 assert len(catalog)==5218 and all(not Path(x['path']).is_absolute() and (root/x['path']).is_file() for x in catalog)
 for path in json.loads(profile)['mapping'].values():assert (root/path).is_file()
-ff=Path(r'D:\Call of Duty Black Ops II\zone\all\common_mp.ff')
+ff=Path(r'F:\Games\Call of Duty Black Ops IIOLD\zone\all\common_mp.ff')
 assert hashlib.sha256(ff.read_bytes()).hexdigest()==report['original_common_mp_sha256']
 print(json.dumps({'deployed':str(root/'Yoroji Tool.exe'),'library_clips':len(catalog),'saved_replacements':report['saved_replacements'],'profile_preserved':True,'original_fastfile_unchanged':True,'sha256':report['executable_sha256']}))

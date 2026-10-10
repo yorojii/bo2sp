@@ -83,7 +83,7 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__();self.title('Yoroji Tool');self.geometry('1080x940');self.minsize(940,860)
         self.mapping={};self.targets=[];self.catalog=[];self.session=None;self.stop_event=threading.Event();self.worker=None;self.indexthread=None;self.lock=threading.Lock();self.closing=False
-        self.cod4=tk.StringVar(value=r'D:\Call of Duty 4');self.bo2=tk.StringVar(value=r'D:\Call of Duty Black Ops II');self.mw2=tk.StringVar(value=r'D:\SteamLibrary\steamapps\common\Call of Duty Modern Warfare 2')
+        self.cod4=tk.StringVar(value=r'D:\Call of Duty 4');self.bo2=tk.StringVar(value=r'F:\Games\Call of Duty Black Ops IIOLD');self.mw2=tk.StringVar(value=r'D:\SteamLibrary\steamapps\common\Call of Duty Modern Warfare 2')
         profile={}
         try:
             profile=json.loads((ROOT/'profile.json').read_text());self.cod4.set(profile['cod4']);self.bo2.set(profile['bo2']);self.mw2.set(profile.get('mw2',self.mw2.get()))
