@@ -1,0 +1,38 @@
+[
+  {
+    "action": "Idle",
+    "target": "pb_stand_alert_pistol",
+    "weight": 1.0
+  },
+  {
+    "ready": true,
+    "message": "Detected from the live character animation tree.",
+    "client": 0,
+    "entity": 0,
+    "dead": false,
+    "primary": {
+      "target": "pb_pistol_run_fast",
+      "weight": 1.0,
+      "phase": 0.21833112835884094,
+      "layer": "Body",
+      "action": "Running",
+      "selectable": true,
+      "_nodes": [
+        38
+      ]
+    },
+    "animations": [
+      {
+        "target": "pb_pistol_run_fast",
+        "weight": 1.0,
+        "phase": 0.21833112835884094,
+        "layer": "Body",
+        "action": "Running",
+        "selectable": true,
+        "_nodes": [
+          38
+        ]
+      }
+    ]
+  }
+]

@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-10",
+  "game_pid": 8044,
+  "observer_read_only": true,
+  "selected_slots_checked": 143,
+  "original_bone_groups_frames_and_streams_verified": true,
+  "errors": [],
+  "tool_gui_restore_reported": 143,
+  "profile_sha256": "21f0c8cb8d77eafdbc0f13289b28aa1a438589cf6788523f04165fefd4a19167",
+  "no_agent_held_input_since_clean_restart": true,
+  "live_comparison_helper_never_started": true,
+  "note": "Read-only comparison with original BO2 exports; quaternion W permits the existing two-integer rounding tolerance. Not a byte-exact pre-import header baseline."
+}

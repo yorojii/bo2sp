@@ -1,0 +1,23 @@
+{
+  "catalog_checked": {
+    "CoD4": 2171,
+    "MW2 Actors": 3047
+  },
+  "rigs_checked": {
+    "pb_stand_alert": 68,
+    "pb_stumble_pistol_walk_forward": 74,
+    "pb_death_run_stumble": 68
+  },
+  "errors": [],
+  "basic_checked": 142,
+  "basic_errors": [],
+  "static_poses": 488,
+  "three_d_root_clips": 15,
+  "seconds": 279.53,
+  "checks": [
+    "stable destination bone order",
+    "quaternion values preserved by bone name",
+    "translation motion preserved with actor spine basis correction",
+    "complete T6 stream inverse roundtrip"
+  ]
+}

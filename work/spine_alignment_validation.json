@@ -1,0 +1,23 @@
+{
+  "catalog": {
+    "CoD4": {
+      "checked": 2171,
+      "authored_spine_preserved": 464,
+      "direct_actor_spine_corrected": 1707
+    },
+    "MW2 Actors": {
+      "checked": 3047,
+      "direct_actor_spine_corrected": 2493,
+      "authored_spine_preserved": 554
+    }
+  },
+  "model_rigs_verified": 10,
+  "direct_source_model_rigs": 14,
+  "translation_keys_checked": 5281,
+  "maximum_position_error_units": 5.019213198558825e-07,
+  "old_bind_position_error_units": 7.311501852123553,
+  "inverse_stream_roundtrips": 5218,
+  "errors": [],
+  "seconds": 94.39,
+  "coverage": "Data and model bind-position audit. Representative live visual tests are separate."
+}

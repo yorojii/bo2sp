@@ -1,0 +1,24 @@
+# Whitelist: track source, docs, scripts and small evidence reports only.
+# Game asset dumps, extracted clips, release binaries, build caches and the
+# user's profile stay out of git (size, game-asset rights, private state).
+/*
+!/.gitignore
+!/work/
+
+/work/*
+!/work/*.py
+!/work/*.spec
+!/work/*.gsc
+!/work/README-*.txt
+!/work/PROGRESS.md
+!/work/*validation*.json
+!/work/porter/
+!/work/spine_fix/
+
+/work/porter/*
+!/work/porter/*.py
+
+/work/spine_fix/*
+!/work/spine_fix/live_compare.py
+
+__pycache__/

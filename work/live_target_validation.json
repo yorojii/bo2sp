@@ -1,0 +1,12 @@
+{
+  "cycles_rejected": true,
+  "inherited_blends_verified": true,
+  "inactive_slots_excluded": true,
+  "detected_before": "pb_stand_alert",
+  "observer_read_only": true,
+  "same_session_clip_change": true,
+  "original_baseline_retained": true,
+  "restarted_local_nodes": 1,
+  "selective_restore_verified": true,
+  "exact_final_restore": 2
+}

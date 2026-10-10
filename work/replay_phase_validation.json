@@ -1,0 +1,11 @@
+{
+  "clip": "MW2 run_pain_stumble",
+  "target": "pb_stand_alert",
+  "duration": 1.6666666666666667,
+  "finished_phase": 1.0,
+  "reset_nodes": 1,
+  "immediate_phase": 0,
+  "phase_after_150ms": 0.09360000491142273,
+  "phase_after_450ms": 0.2730000913143158,
+  "playback_progress_verified": true
+}

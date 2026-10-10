@@ -1,0 +1,20 @@
+[
+  {
+    "target": "pb_stand_alert",
+    "stable_bone_count": 68,
+    "name_pointer_preserved": true,
+    "restore_verified": true
+  },
+  {
+    "target": "pb_stumble_pistol_walk_forward",
+    "stable_bone_count": 74,
+    "name_pointer_preserved": true,
+    "restore_verified": true
+  },
+  {
+    "target": "pb_death_run_stumble",
+    "stable_bone_count": 68,
+    "name_pointer_preserved": true,
+    "restore_verified": true
+  }
+]

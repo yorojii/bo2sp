@@ -1,0 +1,11 @@
+{
+  "selection_without_use_button": true,
+  "Idle": "pb_stand_alert",
+  "Running": "pb_pistol_run_fast",
+  "Crouched": "pb_crouch_alert",
+  "Prone": "pb_prone_aim",
+  "locked_mode_uses_locked_target": true,
+  "selected_source_persisted": true,
+  "starts_importer_for_key_action": true,
+  "no_match_does_not_apply": true
+}

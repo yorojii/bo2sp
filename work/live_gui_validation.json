@@ -1,0 +1,10 @@
+{
+  "detected_and_locked": "pb_stand_alert",
+  "first_import_count": 142,
+  "updated_while_active": true,
+  "removed_target_restored": true,
+  "cleared_without_default_reimport": true,
+  "exact_restore_count": 142,
+  "observer_still_detects_after_stop": true,
+  "stop_completion_message": true
+}
