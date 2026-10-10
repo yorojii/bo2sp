@@ -3,7 +3,7 @@ import sys,json
 sys.path.insert(0,'work/porter')
 import runtime_app as gui
 final=Path('outputs/Yoroji Tool').resolve();root=Path('work/replay_settings_test').resolve();root.mkdir(exist_ok=True);(root/'state').mkdir(exist_ok=True);(root/'library').mkdir(exist_ok=True)
-profile=json.loads((final/'profile.json').read_text());profile['mapping']={n:str(final/p) for n,p in profile['mapping'].items()}
+profile=json.loads((final/'profile.json').read_text());profile['mapping']={n:str(final/p) for n,p in profile['mapping'].items()};profile['mapping'].setdefault('pb_stand_alert',str(final/'library/clips/00000.xanim')) # Target must be mapped to stay selected.
 (root/'profile.json').write_text(json.dumps(profile));catalog=json.loads((final/'library/catalog.json').read_text())
 for item in catalog:item['path']=str(final/item['path'])
 (root/'library/catalog.json').write_text(json.dumps(catalog));gui.ROOT=root;gui.STATE=root/'state';failures=[]

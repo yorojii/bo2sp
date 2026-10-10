@@ -7,6 +7,7 @@ from runtime import Session,decode,load_clip,body_clip,k
 from camera import install_camera
 from live_target import LiveTargetReader,AnimationChanging
 from replay_hotkey import HotkeyListener,KEYS,GAME_KEYS,key_name
+from freelook import Freelook
 
 ROOT=Path(sys.executable).resolve().parent if getattr(sys,'frozen',False) else Path(__file__).resolve().parent
 TOOLS=ROOT/'tools';STATE=ROOT/'state';STATE.mkdir(exist_ok=True)
@@ -102,6 +103,9 @@ class App(tk.Tk):
         self.hotkeys={action:{'vk':int(v['vk']),'name':str(v.get('name') or key_name(v['vk']))} for action,v in profile.get('hotkeys',{}).items() if isinstance(v,dict) and v.get('vk')}
         self.actions={};self.capture_action=None
         self.replay_enabled=tk.BooleanVar(value=profile.get('replay',{}).get('enabled',True))
+        look=profile.get('freelook',{});self.freelook_vk=int(look.get('vk',0x12) or 0) # Default: either Alt key.
+        self.freelook_key=tk.StringVar(value=(look.get('key') if 'vk' in look else key_name(self.freelook_vk)) if self.freelook_vk else 'None')
+        self.freelook_enabled=tk.BooleanVar(value=look.get('enabled',True));self.freelook_speed=tk.StringVar(value=str(look.get('speed',0.15)))
         self.replay_note=tk.StringVar();self.replay_error_shown=False
         self.bo2.trace_add('write',lambda *args:setattr(self,'observer_folder',self.bo2.get()))
         self.target.trace_add('write',lambda *args:self.update_target_note())
@@ -127,6 +131,12 @@ class App(tk.Tk):
         self.replay_keybutton.bind('<Button-3>',lambda event:self.hotkey_menu(event,'apply_anim'))
         self.action_button(replay_controls,'apply_anim','Apply anim now',self.request_replay).pack(side='left')
         ttk.Label(replay_controls,textvariable=self.replay_note,wraplength=590).pack(side='left',padx=12)
+        look_controls=ttk.Frame(live_panel);look_controls.pack(fill='x',pady=(6,0))
+        ttk.Checkbutton(look_controls,text='Third-person freelook (hold)',variable=self.freelook_enabled,command=self.save).pack(side='left')
+        self.freelook_keybutton=ttk.Button(look_controls,textvariable=self.freelook_key,width=12,command=lambda:self.begin_capture('freelook'));self.freelook_keybutton.pack(side='left',padx=8)
+        self.freelook_keybutton.bind('<Button-3>',lambda event:self.hotkey_menu(event,'freelook'))
+        ttk.Label(look_controls,text='Speed').pack(side='left');speed=ttk.Spinbox(look_controls,textvariable=self.freelook_speed,from_=0.05,to=1.0,increment=0.05,width=6,command=self.save);speed.pack(side='left',padx=6);speed.bind('<FocusOut>',lambda event:self.save())
+        ttk.Label(look_controls,text='While held in BO2: mouse orbits the camera, wheel zooms. Release to snap back.').pack(side='left',padx=6)
         self.notebook=ttk.Notebook(body);self.notebook.grid(row=5,column=0,sticky='nsew',pady=8);self.panels={};self.targetboxes=[]
         for game in ('CoD4','MW2 Actors','BO2 SP','BO2 Zombies'):
             panel=ttk.Frame(self.notebook,padding=10);self.notebook.add(panel,text=game);panel.columnconfigure(0,weight=1);panel.rowconfigure(2,weight=1)
@@ -155,14 +165,14 @@ class App(tk.Tk):
         ttk.Label(live_footer,text='Choose a Body layer for a full-character animation.').pack(side='left',padx=12)
         row=ttk.Frame(body);row.grid(row=6,column=0,sticky='ew',pady=9)
         self.startbutton=self.action_button(row,'launch_apply','Launch BO2 & apply',self.start);self.startbutton.pack(side='left');self.action_button(row,'stop_restore','Stop & restore',self.stop).pack(side='left',padx=8)
-        self.action_button(row,'enable_camera','Enable third-person camera',self.enable_camera).pack(side='left',padx=4)
+        self.action_button(row,'enable_camera','Install third person plugin',self.enable_camera).pack(side='left',padx=4)
         ttk.Label(body,textvariable=self.live,font=('Segoe UI',11,'bold')).grid(row=7,column=0,sticky='w')
         ttk.Label(body,textvariable=self.status,wraplength=1010).grid(row=8,column=0,sticky='w',pady=5)
         self.logbox=tk.Text(body,height=4,wrap='word',state='disabled',font=('Consolas',9));self.logbox.grid(row=9,column=0,sticky='ew')
         ttk.Label(body,text='Use selected clip applies live when your match is detected. Right-click any button to give it a hotkey. Closing Yoroji Tool restores the animations.').grid(row=10,column=0,sticky='w',pady=(8,0))
         self.protocol('WM_DELETE_WINDOW',self.close_app);self.read_library();self.refresh()
         self.observer=threading.Thread(target=self.observe_game);self.observer.start()
-        self.hotkey=HotkeyListener();self.after(20,self.poll_replay_key)
+        self.hotkey=HotkeyListener();self.freelook=Freelook();self.after(20,self.poll_replay_key)
     def post(self,fn):
         if not self.closing:self.after(0,fn)
     def log(self,text):
@@ -200,6 +210,8 @@ class App(tk.Tk):
         if self.closing:return
         pid=self.session.pid if self.session else self.last_snapshot.get('pid',0)
         self.hotkey.configure(self.bindings(active=True),pid)
+        self.freelook.degrees_per_pixel=self.freelook_speed_value();self.freelook.configure(self.freelook_vk,pid,self.freelook_enabled.get() and bool(self.freelook_vk))
+        if self.freelook.error:self.log('Freelook: '+self.freelook.error);self.freelook.error=None
         if self.hotkey.error and not self.replay_error_shown:
             self.log('Hotkeys unavailable: '+self.hotkey.error+'. The buttons still work.');self.replay_error_shown=True
         while True:
@@ -213,17 +225,22 @@ class App(tk.Tk):
     def action_button(self,parent,action,text,command):
         button=ttk.Button(parent,text=text,command=command);self.actions[action]=(button,text)
         button.bind('<Button-3>',lambda event:self.hotkey_menu(event,action));self.label_action(action);return button
-    def action_label(self,action):return 'Apply anim' if action=='apply_anim' else self.actions[action][1]
+    def action_label(self,action):return {'apply_anim':'Apply anim','freelook':'Freelook'}.get(action) or self.actions[action][1]
+    def freelook_speed_value(self):
+        try:return min(max(float(self.freelook_speed.get()),0.01),2.0)
+        except ValueError:return 0.15
     def label_action(self,action):
         if action=='apply_anim' or action not in self.actions:return
         button,text=self.actions[action];key=self.hotkeys.get(action)
         button.configure(text=f"{text}  [{key['name']}]" if key else text)
     def bindings(self,active=False):
         keys={v['vk']:action for action,v in self.hotkeys.items()}
+        if self.freelook_vk and not active: # Held by freelook, not dispatched as a press; 'Alt' covers both Alt keys.
+            for vk in ((0x12,0xA4,0xA5) if self.freelook_vk==0x12 else (self.freelook_vk,)):keys[vk]='freelook'
         if self.apply_vk and (self.replay_enabled.get() or not active):keys[self.apply_vk]='apply_anim'
         return keys
     def hotkey_menu(self,event,action):
-        menu=tk.Menu(self,tearoff=0);name=self.replay_key.get() if action=='apply_anim' and self.apply_vk else self.hotkeys.get(action,{}).get('name')
+        menu=tk.Menu(self,tearoff=0);name={'apply_anim':self.apply_vk and self.replay_key.get(),'freelook':self.freelook_vk and self.freelook_key.get()}.get(action,self.hotkeys.get(action,{}).get('name'))
         menu.add_command(label=f'Change hotkey ({name})…' if name else 'Set hotkey…',command=lambda:self.begin_capture(action))
         if name:menu.add_command(label='Clear hotkey',command=lambda:self.clear_hotkey(action))
         menu.tk_popup(event.x_root,event.y_root)
@@ -233,6 +250,7 @@ class App(tk.Tk):
         self.status.set(f'Press any key for {self.action_label(action)}. Esc cancels.')
     def unbind_action(self,action):
         if action=='apply_anim':self.apply_vk=0;self.replay_key.set('None')
+        elif action=='freelook':self.freelook_vk=0;self.freelook_key.set('None')
         else:self.hotkeys.pop(action,None);self.label_action(action)
     def assign_hotkey(self,vk,name):
         action=self.capture_action;self.capture_action=None
@@ -240,9 +258,10 @@ class App(tk.Tk):
         moved=[other for key,other in self.bindings().items() if key==vk and other!=action]
         for other in moved:self.unbind_action(other)
         if action=='apply_anim':self.apply_vk=vk;self.replay_key.set(name)
+        elif action=='freelook':self.freelook_vk=vk;self.freelook_key.set(name)
         else:self.hotkeys[action]={'vk':vk,'name':name};self.label_action(action)
         notes=['moved from '+self.action_label(other) for other in moved]
-        if vk in GAME_KEYS:notes.append('BO2 still receives this key, so it also does its game action')
+        if vk in GAME_KEYS:notes.append("BO2 won't receive this key while freelook is on" if action=='freelook' else 'BO2 still receives this key, so it also does its game action')
         self.status.set(f'{name} → {self.action_label(action)}'+(' ('+'; '.join(notes)+')' if notes else '')+'. Works while BO2 is focused.');self.save()
     def clear_hotkey(self,action):
         self.unbind_action(action);self.status.set('Hotkey cleared: '+self.action_label(action));self.save()
@@ -369,7 +388,7 @@ class App(tk.Tk):
         if replay_source:
             try:replay_source=str(Path(replay_source).resolve().relative_to(ROOT))
             except ValueError:pass
-        (ROOT/'profile.json').write_text(json.dumps({'cod4':self.cod4.get(),'bo2':self.bo2.get(),'mw2':self.mw2.get(),'mapping':mapping,'targets':self.targets,'replay':{'key':self.replay_key.get(),'vk':self.apply_vk,'enabled':self.replay_enabled.get(),'target':self.replay_target,'source':replay_source},'hotkeys':self.hotkeys},indent=2))
+        (ROOT/'profile.json').write_text(json.dumps({'cod4':self.cod4.get(),'bo2':self.bo2.get(),'mw2':self.mw2.get(),'mapping':mapping,'targets':self.targets,'replay':{'key':self.replay_key.get(),'vk':self.apply_vk,'enabled':self.replay_enabled.get(),'target':self.replay_target,'source':replay_source},'hotkeys':self.hotkeys,'freelook':{'key':self.freelook_key.get(),'vk':self.freelook_vk,'enabled':self.freelook_enabled.get(),'speed':self.freelook_speed_value()}},indent=2))
     def settings(self):
         dialog=tk.Toplevel(self);dialog.title('Game folders');dialog.geometry('780x220');dialog.transient(self)
         for title,var in [('CoD4',self.cod4),('MW2',self.mw2),('BO2 Redacted',self.bo2)]:
@@ -516,9 +535,9 @@ class App(tk.Tk):
             self.status.set('Camera helper ready. Start a new custom match, then hold F and press 1 to switch views.')
         except (OSError,ValueError) as e:self.log(str(e));self.status.set('Camera setup stopped: '+str(e))
     def close_app(self):
-        self.stop_event.set();self.worker_wake.set();self.observe_stop.set();self.hotkey.stop();self.closing=True
+        self.stop_event.set();self.worker_wake.set();self.observe_stop.set();self.hotkey.stop();self.freelook.stop();self.closing=True
         def finish():
-            if not self.idle() or self.observer.is_alive() or self.hotkey.is_alive():self.after(100,finish)
+            if not self.idle() or self.observer.is_alive() or self.hotkey.is_alive() or self.freelook.is_alive():self.after(100,finish)
             else:self.destroy()
         finish()
 

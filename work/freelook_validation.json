@@ -1,0 +1,29 @@
+{
+  "alt_hidden_from_bo2": true,
+  "alt_untouched_outside_bo2": true,
+  "alt_tab_hands_alt_back": true,
+  "injected_keys_pass": true,
+  "disabled_passes_alt": true,
+  "rebound_key_only": true,
+  "hooks_closed": true,
+  "live_camera_read": {
+    "angle": 0.0,
+    "range": 120.0,
+    "limits": [
+      [
+        -180.0,
+        360.0
+      ],
+      [
+        0.0,
+        1024.0
+      ]
+    ]
+  },
+  "default_alt": true,
+  "alt_reserved_not_dispatched": true,
+  "conflict_moves_alt": "Alt \u2192 Apply anim (moved from Freelook). Works while BO2 is focused.",
+  "freelook_game_key_note": "C \u2192 Freelook (BO2 won't receive this key while freelook is on). Works while BO2 is focused.",
+  "settings_reload": true,
+  "bad_speed_falls_back": true
+}

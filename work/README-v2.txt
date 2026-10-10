@@ -6,12 +6,19 @@ Click "Launch BO2 & apply" to launch BO2 or attach to your running game.
 Keep Yoroji Tool open while playing or viewing demos.
 
 Third-person camera
-Click "Enable third-person camera" once, then start a new custom match.
+Click "Install third person plugin" once, then start a new custom match.
 The camera switches to third person two seconds after the host spawns.
 Hold F and press 1 to switch between first and third person with your
 current bindings (Use + scorestreak up). Close the mod menu first.
 The helper is installed at data/scripts/yoroji_third_person.gsc in BO2.
-It stays installed between launches. The console cg_thirdperson setting
+It stays installed between launches.
+
+Third-person freelook: with "Third-person freelook (hold)" ticked, hold
+Alt in BO2 and move the mouse to orbit the camera around your character
+without turning; the mouse wheel zooms. Release Alt to snap back. Speed
+sets degrees per mouse pixel. Click the key button to choose another key.
+While BO2 is focused the freelook key is not passed to the game, so
+Alt+key no longer beeps; Alt+Tab, Alt+F4 and Alt+Enter still work. The console cg_thirdperson setting
 alone does not switch the live player's camera in this Redacted setup.
 
 Choosing animations
