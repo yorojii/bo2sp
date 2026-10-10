@@ -1,0 +1,108 @@
+{
+  "date": "2026-10-10",
+  "build": "ac5561fe (Python 3.10.11 / PyInstaller 6.16.0)",
+  "category": "verified live (read-only watcher + user visual check)",
+  "log": "work/watch_logs/session-20261010-172857.jsonl",
+  "presses": [
+    {
+      "t": 44.187,
+      "bo2_focused": true,
+      "saved_target": "pb_knife_stand_idle",
+      "saved_source": "MW2 Actors: favela_escape_bigjump_faust (one-shot)",
+      "save_ms": 16,
+      "reset_target": "pb_knife_stand_idle",
+      "reset_ms": 94,
+      "phase_before": 1.0,
+      "phase_after": 0.0028
+    },
+    {
+      "t": 47.75,
+      "bo2_focused": true,
+      "saved_target": "pb_knife_stand_idle",
+      "saved_source": "MW2 Actors: favela_civ_warning_landing (one-shot)",
+      "save_ms": 0,
+      "reset_target": "pb_knife_stand_idle",
+      "reset_ms": 93,
+      "phase_before": 0.6231,
+      "phase_after": 0.0068
+    },
+    {
+      "t": 58.39,
+      "bo2_focused": true,
+      "saved_target": "pb_knife_stand_idle",
+      "saved_source": "MW2 Actors: favela_chaotic_crouchcover_firea (one-shot)",
+      "save_ms": 16,
+      "reset_target": "pb_knife_stand_idle",
+      "reset_ms": 78,
+      "phase_before": 1.0,
+      "phase_after": 0.002
+    },
+    {
+      "t": 64.609,
+      "bo2_focused": true,
+      "saved_target": "pb_knife_stand_idle",
+      "saved_source": "MW2 Actors: favela_chaotic_crouchcover_grenadefirea (one-shot)",
+      "save_ms": 31,
+      "reset_target": "pb_knife_stand_idle",
+      "reset_ms": 78,
+      "phase_before": 1.0,
+      "phase_after": 0
+    },
+    {
+      "t": 73.984,
+      "bo2_focused": true,
+      "saved_target": "pb_knife_stand_idle",
+      "saved_source": "MW2 Actors: favela_chaotic_standcover_firea (one-shot)",
+      "save_ms": 31,
+      "reset_target": "pb_knife_stand_idle",
+      "reset_ms": 78,
+      "phase_before": 1.0,
+      "phase_after": 0.004
+    },
+    {
+      "t": 81.171,
+      "bo2_focused": true,
+      "saved_target": "pb_stand_alert",
+      "saved_source": "MW2 Actors: favela_chaotic_standcover_firea (one-shot)",
+      "save_ms": 32,
+      "reset_target": "pb_stand_alert",
+      "reset_ms": 79,
+      "phase_before": 0.9732,
+      "phase_after": 0.0057
+    },
+    {
+      "t": 103.562,
+      "bo2_focused": true,
+      "saved_target": "pb_stand_alert",
+      "saved_source": "MW2 Actors: favela_chaotic_crouchcover_gunjama (one-shot)",
+      "save_ms": 47,
+      "reset_target": "pb_stand_alert",
+      "reset_ms": 125,
+      "phase_before": 1.0,
+      "phase_after": 0.0054
+    }
+  ],
+  "all_presses_saved_and_restarted_current_slot": true,
+  "unprompted_resets": [
+    {
+      "t": 94.687,
+      "target": "pb_hold_run",
+      "weight": 0.01
+    }
+  ],
+  "death_observed": [
+    {
+      "t": 90.531,
+      "event": "died",
+      "client": 0,
+      "entity": 18
+    },
+    {
+      "t": 92.578,
+      "event": "alive",
+      "client": 0,
+      "entity": 0
+    }
+  ],
+  "not_covered": "All presses were in idle slots (pb_knife_stand_idle x5, pb_stand_alert x2). F6 while running, crouched, prone, or holding aim/sprint was not exercised; locked (Follow off) mode not exercised."
+}
