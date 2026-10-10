@@ -70,6 +70,16 @@ clearing the selection restores those slots during the active session.
 An empty selection keeps the original animations. Basics are loaded only
 when you click "Load CoD4 basics". Choices are saved between launches.
 You can mix clips from both games or clear the selection to use just one.
+
+Favorites: select a clip in any library tab and click "★ Favorite"; the
+Favorites tab (first tab) lists all starred clips, filterable by game,
+and works like the other tabs. Click "Remove favorite" there to unstar.
+
+Saved sets: in Selected replacements, "Save set…" stores every current
+replacement under a name. Pick a set and "Load set" to swap it in (it
+replaces the current replacements and applies live if a match is
+running); "Delete set" removes the saved copy only. Favorites and sets
+remember clips by game, scene and name, so they survive library updates.
 The detector follows your local character. Replacements affect every
 character using the selected BO2 asset slot in this game session.
 

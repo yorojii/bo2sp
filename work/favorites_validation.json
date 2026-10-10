@@ -1,0 +1,23 @@
+{
+  "favorites_tab_first_and_empty": true,
+  "star_from_library_tab": "CoD4/common_mp/mp_mantle_over_high",
+  "remove_from_favorites_tab": true,
+  "favorites_game_filter": true,
+  "favorite_selects_clip": true,
+  "set_saved_by_clip_key": {
+    "pb_stand_alert": {
+      "clip": "MW2 Actors/common/heat_cover_reload_l"
+    },
+    "pb_crouch_alert": {
+      "clip": "BO2 Zombies/common_zm/mp_mantle_over_high"
+    },
+    "pb_prone_aim": {
+      "path": "state\\imported_clip.xanim"
+    }
+  },
+  "set_loads_back": true,
+  "favorites_reload": true,
+  "sets_reload": true,
+  "missing_clip_reported": "Loaded \"Scene one\": 3 replacements, 1 missing clips skipped (CoD4/nowhere/missing_clip).",
+  "delete_keeps_current": true
+}

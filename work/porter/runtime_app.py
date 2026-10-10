@@ -1,7 +1,7 @@
 """CoD4 body-animation importer for BO2 Redacted MP (GPL-3.0-or-later)."""
 from pathlib import Path
 import csv,ctypes,hashlib,json,os,queue,subprocess,sys,threading,time,tkinter as tk
-from tkinter import ttk,filedialog,messagebox
+from tkinter import ttk,filedialog,messagebox,simpledialog
 from ctypes import wintypes
 from runtime import Session,decode,load_clip,body_clip,k
 from camera import install_camera
@@ -102,6 +102,8 @@ class App(tk.Tk):
         self.apply_vk=int(vk or 0);self.replay_key=tk.StringVar(value=(replay.get('key') if 'vk' in replay else key_name(self.apply_vk)) if self.apply_vk else 'None')
         self.hotkeys={action:{'vk':int(v['vk']),'name':str(v.get('name') or key_name(v['vk']))} for action,v in profile.get('hotkeys',{}).items() if isinstance(v,dict) and v.get('vk')}
         self.actions={};self.capture_action=None
+        # Favorites and saved sets refer to clips by game/zone/name, so they survive library renumbering.
+        self.favorites=set(profile.get('favorites',[]));self.saved_sets=dict(profile.get('saved_sets',{}))
         self.replay_enabled=tk.BooleanVar(value=profile.get('replay',{}).get('enabled',True))
         look=profile.get('freelook',{});self.freelook_vk=int(look.get('vk',0x12) or 0) # Default: either Alt key.
         self.freelook_key=tk.StringVar(value=(look.get('key') if 'vk' in look else key_name(self.freelook_vk)) if self.freelook_vk else 'None')
@@ -138,16 +140,17 @@ class App(tk.Tk):
         ttk.Label(look_controls,text='Speed').pack(side='left');speed=ttk.Spinbox(look_controls,textvariable=self.freelook_speed,from_=0.05,to=1.0,increment=0.05,width=6,command=self.save);speed.pack(side='left',padx=6);speed.bind('<FocusOut>',lambda event:self.save())
         ttk.Label(look_controls,text='While held in BO2: mouse orbits the camera, wheel zooms. Release to snap back.').pack(side='left',padx=6)
         self.notebook=ttk.Notebook(body);self.notebook.grid(row=5,column=0,sticky='nsew',pady=8);self.panels={};self.targetboxes=[]
-        for game in ('CoD4','MW2 Actors','BO2 SP','BO2 Zombies'):
+        for game in ('Favorites','CoD4','MW2 Actors','BO2 SP','BO2 Zombies'):
             panel=ttk.Frame(self.notebook,padding=10);self.notebook.add(panel,text=game);panel.columnconfigure(0,weight=1);panel.rowconfigure(2,weight=1)
             controls=ttk.Frame(panel);controls.grid(row=0,column=0,sticky='ew')
             ttk.Label(controls,text='Search').pack(side='left');query=tk.StringVar();ttk.Entry(controls,textvariable=query,width=37).pack(side='left',padx=7)
-            ttk.Label(controls,text='Scene / zone').pack(side='left',padx=(12,5));zone=tk.StringVar(value='All');zbox=ttk.Combobox(controls,textvariable=zone,values=['All'],state='readonly',width=23);zbox.pack(side='left')
+            ttk.Label(controls,text='Game' if game=='Favorites' else 'Scene / zone').pack(side='left',padx=(12,5));zone=tk.StringVar(value='All');zbox=ttk.Combobox(controls,textvariable=zone,values=['All'],state='readonly',width=23);zbox.pack(side='left')
             count=tk.StringVar();ttk.Label(panel,textvariable=count).grid(row=1,column=0,sticky='w',pady=7)
-            table=ttk.Frame(panel);table.grid(row=2,column=0,sticky='nsew');tree=ttk.Treeview(table,columns=('name','zone','duration','loop','bones'),show='headings',selectmode='browse')
-            for key,label,width in [('name','Source animation',420),('zone','Scene / zone',170),('duration','Seconds',85),('loop','Loop',60),('bones','Bones',60)]:tree.heading(key,text=label);tree.column(key,width=width,stretch=key=='name')
+            table=ttk.Frame(panel);table.grid(row=2,column=0,sticky='nsew');tree=ttk.Treeview(table,columns=('fav','name','zone','duration','loop','bones'),show='headings',selectmode='browse')
+            for key,label,width in [('fav','★',32),('name','Source animation',420),('zone','Scene / zone',170),('duration','Seconds',85),('loop','Loop',60),('bones','Bones',60)]:tree.heading(key,text=label);tree.column(key,width=width,stretch=key=='name')
             tree.pack(side='left',fill='both',expand=True);scroll=ttk.Scrollbar(table,orient='vertical',command=tree.yview);scroll.pack(side='right',fill='y');tree.configure(yscrollcommand=scroll.set)
             footer=ttk.Frame(panel);footer.grid(row=3,column=0,sticky='ew',pady=(10,0));ttk.Label(footer,text='BO2 slot to replace').pack(side='left');combo=ttk.Combobox(footer,textvariable=self.target,values=self.targets,width=43);combo.pack(side='left',padx=8);self.targetboxes.append(combo);self.action_button(footer,'use_clip:'+game,'Use selected clip',lambda g=game:self.use_clip(g)).pack(side='left')
+            self.action_button(footer,'favorite:'+game,'Remove favorite' if game=='Favorites' else '★ Favorite',lambda g=game:self.toggle_favorite(g)).pack(side='left',padx=8)
             combo.bind('<<ComboboxSelected>>',self.manual_target);combo.bind('<KeyPress>',self.manual_target)
             self.panels[game]=(query,zone,zbox,count,tree)
             query.trace_add('write',lambda *args,g=game:self.render_catalog(g));zone.trace_add('write',lambda *args,g=game:self.render_catalog(g));tree.bind('<<TreeviewSelect>>',lambda event,g=game:self.choose_target(g))
@@ -155,6 +158,9 @@ class App(tk.Tk):
         self.tree=ttk.Treeview(panel,columns=('target','source'),show='headings',selectmode='extended');self.tree.heading('target',text='BO2 animation slot');self.tree.heading('source',text='Source clip');self.tree.column('target',width=410);self.tree.column('source',width=410);self.tree.grid(row=0,column=0,sticky='nsew')
         scroll=ttk.Scrollbar(panel,orient='vertical',command=self.tree.yview);scroll.grid(row=0,column=1,sticky='ns');self.tree.configure(yscrollcommand=scroll.set)
         controls=ttk.Frame(panel);controls.grid(row=1,column=0,sticky='w',pady=(10,0));self.action_button(controls,'remove_selected','Remove selected',self.remove).pack(side='left');self.action_button(controls,'clear_selection','Clear selection',self.clear).pack(side='left',padx=8)
+        ttk.Separator(controls,orient='vertical').pack(side='left',fill='y',padx=10);self.action_button(controls,'save_set','Save set…',self.save_set).pack(side='left')
+        self.set_name=tk.StringVar();self.setbox=ttk.Combobox(controls,textvariable=self.set_name,values=sorted(self.saved_sets),state='readonly',width=28);self.setbox.pack(side='left',padx=8)
+        self.action_button(controls,'load_set','Load set',self.load_set).pack(side='left');self.action_button(controls,'delete_set','Delete set',self.delete_set).pack(side='left',padx=8)
         live_tab=ttk.Frame(self.notebook,padding=10);self.notebook.add(live_tab,text='Live target');live_tab.columnconfigure(0,weight=1);live_tab.rowconfigure(1,weight=1)
         ttk.Label(live_tab,text='These are the animation layers contributing to your current character pose.').grid(row=0,column=0,sticky='w',pady=(0,8))
         self.active_tree=ttk.Treeview(live_tab,columns=('target','layer','weight','action','replacement'),show='headings',selectmode='browse')
@@ -346,13 +352,67 @@ class App(tk.Tk):
             self.catalog=json.loads((ROOT/'library/catalog.json').read_text())
             for item in self.catalog:item['path']=str((ROOT/item['path']).resolve())
         except (OSError,ValueError):self.catalog=[]
-        for game,(query,zone,zbox,count,tree) in self.panels.items():zbox.configure(values=['All']+sorted({x['zone'] for x in self.catalog if x['game']==game}));self.render_catalog(game)
+        for game,(query,zone,zbox,count,tree) in self.panels.items():zbox.configure(values=['All']+sorted({x['game' if game=='Favorites' else 'zone'] for x in self.catalog if game=='Favorites' or x['game']==game}));self.render_catalog(game)
     def render_catalog(self,game):
-        query,zone,zbox,count,tree=self.panels[game];tree.delete(*tree.get_children());q=query.get().casefold();shown=0
+        query,zone,zbox,count,tree=self.panels[game];tree.delete(*tree.get_children());q=query.get().casefold();shown=0;favorites=game=='Favorites'
         for index,item in enumerate(self.catalog):
-            if item['game']!=game or (zone.get()!='All' and item['zone']!=zone.get()) or q not in (item['name']+' '+item['zone']).casefold():continue
-            tree.insert('','end',iid=str(index),values=(item['name'],item['zone'],f"{item['frames']/item['fps']:.2f}",'Yes' if item['loop'] else 'No',item['bones']));shown+=1
-        count.set(f'{shown:,} character clips • choose a looping slot for movement or a death slot for a death clip')
+            starred=self.clip_key(item) in self.favorites
+            if favorites:
+                if not starred or (zone.get()!='All' and item['game']!=zone.get()):continue
+            elif item['game']!=game or (zone.get()!='All' and item['zone']!=zone.get()):continue
+            if q not in (item['name']+' '+item['zone']).casefold():continue
+            tree.insert('','end',iid=str(index),values=('★' if starred else '',item['name'],f"{item['game']} · {item['zone']}" if favorites else item['zone'],f"{item['frames']/item['fps']:.2f}",'Yes' if item['loop'] else 'No',item['bones']));shown+=1
+        count.set(f'{shown:,} favorite clips • ★ Favorite in any library tab adds a clip here' if favorites else f'{shown:,} character clips • choose a looping slot for movement or a death slot for a death clip')
+    def clip_key(self,item):return f"{item['game']}/{item['zone']}/{item['name']}"
+    def toggle_favorite(self,game):
+        selection=self.panels[game][4].selection()
+        if not selection:self.status.set('Select a clip first, then use ★ Favorite.');return
+        item=self.catalog[int(selection[0])];key=self.clip_key(item);added=key not in self.favorites
+        if added:self.favorites.add(key)
+        else:self.favorites.discard(key)
+        for other,(query,zone,zbox,count,tree) in self.panels.items():
+            if other!='Favorites' and tree.exists(selection[0]):tree.set(selection[0],'fav','★' if added else '')
+        self.render_catalog('Favorites');self.save()
+        self.status.set(('Added to' if added else 'Removed from')+f" favorites: {item['name']}")
+    def set_entries(self):
+        """Current mapping as saveable entries: catalog clips by key, other files by path."""
+        lookup={x['path']:x for x in self.catalog};entries={}
+        for target,path in self.mapping.items():
+            item=lookup.get(path)
+            if item:entries[target]={'clip':self.clip_key(item)}
+            else:
+                try:entries[target]={'path':str(Path(path).resolve().relative_to(ROOT))}
+                except ValueError:entries[target]={'path':str(Path(path).resolve())}
+        return entries
+    def save_set(self):
+        if not self.mapping:self.status.set('Choose some replacements before saving a set.');return
+        name=simpledialog.askstring('Save replacements','Name for this set of replacements:',initialvalue=self.set_name.get(),parent=self)
+        name=(name or '').strip()
+        if not name:return
+        if name in self.saved_sets and not messagebox.askyesno('Replace set',f'Replace the saved set "{name}"?',parent=self):return
+        self.saved_sets[name]=self.set_entries();self.setbox.configure(values=sorted(self.saved_sets));self.set_name.set(name);self.save()
+        self.status.set(f'Saved {len(self.saved_sets[name])} replacements as "{name}".')
+    def resolve_set(self,name):
+        paths={self.clip_key(x):x['path'] for x in self.catalog};mapping={};missing=[]
+        for target,entry in self.saved_sets[name].items():
+            path=paths.get(entry.get('clip')) if 'clip' in entry else str((ROOT/entry.get('path','')).resolve())
+            if path and Path(path).is_file():mapping[target]=path
+            else:missing.append(entry.get('clip') or entry.get('path') or target)
+        return mapping,missing
+    def load_set(self):
+        if not self.editable():return
+        name=self.set_name.get()
+        if name not in self.saved_sets:self.status.set('Choose a saved set to load.');return
+        mapping,missing=self.resolve_set(name)
+        if self.mapping and self.mapping!=mapping and not messagebox.askyesno('Load set',f'Replace your {len(self.mapping)} current replacements with "{name}"?',parent=self):return
+        self.mapping=mapping;self.worker_wake.set();self.refresh();self.save()
+        self.status.set(f'Loaded "{name}": {len(mapping)} replacements'+(f', {len(missing)} missing clips skipped ({", ".join(missing[:3])})' if missing else '')+'.')
+        if mapping and self.last_snapshot.get('ready') and self.idle():self.start()
+    def delete_set(self):
+        name=self.set_name.get()
+        if name not in self.saved_sets:self.status.set('Choose a saved set to delete.');return
+        if not messagebox.askyesno('Delete set',f'Delete the saved set "{name}"? Your current replacements are not changed.',parent=self):return
+        del self.saved_sets[name];self.setbox.configure(values=sorted(self.saved_sets));self.set_name.set('');self.save();self.status.set(f'Deleted saved set "{name}".')
     def choose_target(self,game):
         tree=self.panels[game][4];selection=tree.selection()
         if selection:
@@ -388,7 +448,7 @@ class App(tk.Tk):
         if replay_source:
             try:replay_source=str(Path(replay_source).resolve().relative_to(ROOT))
             except ValueError:pass
-        (ROOT/'profile.json').write_text(json.dumps({'cod4':self.cod4.get(),'bo2':self.bo2.get(),'mw2':self.mw2.get(),'mapping':mapping,'targets':self.targets,'replay':{'key':self.replay_key.get(),'vk':self.apply_vk,'enabled':self.replay_enabled.get(),'target':self.replay_target,'source':replay_source},'hotkeys':self.hotkeys,'freelook':{'key':self.freelook_key.get(),'vk':self.freelook_vk,'enabled':self.freelook_enabled.get(),'speed':self.freelook_speed_value()}},indent=2))
+        (ROOT/'profile.json').write_text(json.dumps({'cod4':self.cod4.get(),'bo2':self.bo2.get(),'mw2':self.mw2.get(),'mapping':mapping,'targets':self.targets,'replay':{'key':self.replay_key.get(),'vk':self.apply_vk,'enabled':self.replay_enabled.get(),'target':self.replay_target,'source':replay_source},'hotkeys':self.hotkeys,'favorites':sorted(self.favorites),'saved_sets':self.saved_sets,'freelook':{'key':self.freelook_key.get(),'vk':self.freelook_vk,'enabled':self.freelook_enabled.get(),'speed':self.freelook_speed_value()}},indent=2))
     def settings(self):
         dialog=tk.Toplevel(self);dialog.title('Game folders');dialog.geometry('780x220');dialog.transient(self)
         for title,var in [('CoD4',self.cod4),('MW2',self.mw2),('BO2 Redacted',self.bo2)]:
