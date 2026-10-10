@@ -36,6 +36,9 @@ for key,name in (
     ('replay_settings','replay_settings_validation.json'),
     ('spine_alignment','spine_alignment_validation.json'),
     ('complete_library_conversion','all_clips_validation.json'),
+    ('bo2sp_library','bo2sp_library_validation.json'),
+    ('hotkeys','hotkeys_validation.json'),
+    ('f6_live','f6_live_validation.json'),
 ):
     testfile=workspace/'work'/name
     if testfile.is_file():report[key]=json.loads(testfile.read_text())
@@ -44,7 +47,9 @@ report['executable_sha256']=hashlib.sha256((root/'Yoroji Tool.exe').read_bytes()
 assert (root/'profile.json').read_bytes()==profile
 assert (root/'Yoroji Tool.exe').read_bytes()==(build/'Yoroji Tool.exe').read_bytes()
 catalog=json.loads((root/'library/catalog.json').read_text())
-assert len(catalog)==5218 and all(not Path(x['path']).is_absolute() and (root/x['path']).is_file() for x in catalog)
+counts={game:sum(x['game']==game for x in catalog) for game in ('CoD4','MW2 Actors','BO2 SP')}
+assert counts['CoD4']==2171 and counts['MW2 Actors']==3047 and len(catalog)==sum(counts.values())
+assert all(not Path(x['path']).is_absolute() and (root/x['path']).is_file() for x in catalog)
 for path in json.loads(profile)['mapping'].values():assert (root/path).is_file()
 ff=Path(r'F:\Games\Call of Duty Black Ops IIOLD\zone\all\common_mp.ff')
 assert hashlib.sha256(ff.read_bytes()).hexdigest()==report['original_common_mp_sha256']

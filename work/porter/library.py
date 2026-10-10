@@ -1,17 +1,24 @@
-"""Local CoD4 / MW2 actor library indexing for Yoroji Tool."""
+"""Local CoD4 / MW2 actor / BO2 single-player library indexing for Yoroji Tool."""
 from pathlib import Path
 import hashlib,json,subprocess
 from runtime import decode,body_clip
 from mw2_assets import extract_fastfile
 
-def index_libraries(cod4,mw2,root,unlinker,log,stopped=lambda:False):
+def bo2_single_player(ff):
+    """Campaign and Strike Force zones in BO2's zone/all; skips MP, Zombies and shared code zones."""
+    name=ff.stem
+    if name.endswith(('_mp','_zm')) or name.startswith(('mp_','zm_','code_','dlc','faction_','patch')):return False
+    return not (name.startswith(('so_z','su_z')) and '_zm_' in name)
+
+def index_libraries(cod4,mw2,root,unlinker,log,stopped=lambda:False,bo2=None):
     root=Path(root);catalog=[];seen=set()
-    for game,folder in [('CoD4',cod4),('MW2 Actors',mw2)]:
-        base=Path(folder)/'zone/english'
-        if not base.exists():raise FileNotFoundError(f'Cannot find {game} zone/english folder')
-        files=[p for p in base.glob('*.ff') if not p.name.startswith(('mp_','localized_','code_','ui','xcommon_','dlc','patch')) and (game=='CoD4' or p.stat().st_size>20_000_000)]
+    for game,folder in [('CoD4',cod4),('MW2 Actors',mw2),*([('BO2 SP',bo2)] if bo2 else [])]:
+        base=Path(folder)/('zone/all' if game=='BO2 SP' else 'zone/english')
+        if not base.exists():raise FileNotFoundError(f'Cannot find {game} {base.relative_to(folder).as_posix()} folder')
+        if game=='BO2 SP':files=[p for p in base.glob('*.ff') if bo2_single_player(p)]
+        else:files=[p for p in base.glob('*.ff') if not p.name.startswith(('mp_','localized_','code_','ui','xcommon_','dlc','patch')) and (game=='CoD4' or p.stat().st_size>20_000_000)]
         if game=='MW2 Actors':files=[p for p in files if p.name not in ('common_mp.ff','iw4_credits.ff')]
-        elif (base/'common_mp.ff') not in files:files.append(base/'common_mp.ff')
+        elif game=='CoD4' and (base/'common_mp.ff') not in files:files.append(base/'common_mp.ff')
         files.sort(key=lambda p:(p.name not in ('common_mp.ff','common.ff'),p.name))
         for i,ff in enumerate(files):
             if stopped():return None
@@ -19,7 +26,7 @@ def index_libraries(cod4,mw2,root,unlinker,log,stopped=lambda:False):
             cache=root/'cache'/key;cache.mkdir(parents=True,exist_ok=True)
             stamp={'size':ff.stat().st_size,'modified':ff.stat().st_mtime_ns};meta=cache/'zone.json'
             if meta.exists() and json.loads(meta.read_text())['stamp']==stamp:items=json.loads(meta.read_text())['clips']
-            elif game=='CoD4':
+            elif game in ('CoD4','BO2 SP'):
                 result=subprocess.run([str(unlinker),'--include-assets','xanim','-o',str(cache),str(ff)],capture_output=True,creationflags=subprocess.CREATE_NO_WINDOW)
                 if result.returncode:log(f'Skipped unsupported zone {ff.stem}');continue
                 items=[]
