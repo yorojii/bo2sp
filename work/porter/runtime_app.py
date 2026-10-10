@@ -119,10 +119,10 @@ class App(tk.Tk):
         ttk.Button(live_controls,text='Lock current target',command=self.lock_current).pack(side='left',padx=10)
         ttk.Label(live_controls,textvariable=self.target_note).pack(side='left',padx=6)
         replay_controls=ttk.Frame(live_panel);replay_controls.pack(fill='x',pady=(6,0))
-        ttk.Checkbutton(replay_controls,text='Replay hotkey',variable=self.replay_enabled,command=self.replay_settings_changed).pack(side='left')
+        ttk.Checkbutton(replay_controls,text='Apply anim hotkey',variable=self.replay_enabled,command=self.replay_settings_changed).pack(side='left')
         self.replay_keybox=ttk.Combobox(replay_controls,textvariable=self.replay_key,values=list(KEYS),state='readonly',width=7);self.replay_keybox.pack(side='left',padx=8)
         self.replay_keybox.bind('<<ComboboxSelected>>',lambda event:self.replay_settings_changed())
-        ttk.Button(replay_controls,text='Replay now',command=self.request_replay).pack(side='left')
+        ttk.Button(replay_controls,text='Apply anim now',command=self.request_replay).pack(side='left')
         ttk.Label(replay_controls,textvariable=self.replay_note,wraplength=590).pack(side='left',padx=12)
         self.notebook=ttk.Notebook(body);self.notebook.grid(row=5,column=0,sticky='nsew',pady=8);self.panels={};self.targetboxes=[]
         for game in ('CoD4','MW2 Actors'):
@@ -173,11 +173,11 @@ class App(tk.Tk):
     def request_replay(self):
         if not self.editable():return False
         if not self.replay_path:
-            self.status.set('Select a CoD4 or MW2 clip first, then press your replay key.');return False
+            self.status.set('Select a CoD4 or MW2 clip first, then press your apply anim key.');return False
         if not self.last_snapshot.get('ready') or time.monotonic()-self.detected_at>2:
-            self.status.set('Wait for a live character animation before pressing the replay key.');return False
+            self.status.set('Wait for a live character animation before pressing the apply anim key.');return False
         if self.worker and self.worker.is_alive() and self.stop_event.is_set():
-            self.status.set('Wait for restoration to finish before replaying.');return False
+            self.status.set('Wait for restoration to finish before applying an anim.');return False
         target=self.last_snapshot['primary']['target'] if self.follow_live.get() else self.target.get()
         if target not in self.targets:
             self.status.set('Choose a valid BO2 slot or enable Follow current animation.');return False
@@ -186,19 +186,19 @@ class App(tk.Tk):
         if changed:
             self.mapping={**self.mapping,target:path};self.refresh();self.save()
         self.update_replay_note()
-        self.queue_restart(target,path,True);self.status.set('Replay queued: '+target)
+        self.queue_restart(target,path,True);self.status.set('Apply anim queued: '+target)
         if self.idle():self.start()
         return True
     def update_replay_note(self):
         name=next((x['name'] for x in self.catalog if x['path']==self.replay_path),Path(self.replay_path).stem if self.replay_path else '')
         mode='current live slot' if self.follow_live.get() else self.target.get()
-        self.replay_note.set('Replay: '+name+' → '+mode if name else 'Select a clip, then press the replay key.')
+        self.replay_note.set('Apply anim: '+name+' → '+mode if name else 'Select a clip, then press the apply anim key.')
     def poll_replay_key(self):
         if self.closing:return
         pid=self.session.pid if self.session else self.last_snapshot.get('pid',0)
         self.hotkey.configure(self.replay_key.get(),pid,self.replay_enabled.get())
         if self.hotkey.error and not self.replay_error_shown:
-            self.log('Replay key unavailable: '+self.hotkey.error+'. The Replay now button still works.');self.replay_error_shown=True
+            self.log('Apply anim key unavailable: '+self.hotkey.error+'. The Apply anim now button still works.');self.replay_error_shown=True
         while True:
             try:
                 pressed_pid=self.hotkey.events.get_nowait()
@@ -428,12 +428,12 @@ class App(tk.Tk):
                             try:
                                 if not hasattr(self.session,'live_reader'):self.session.live_reader=LiveTargetReader(self.session)
                                 count=self.session.live_reader.restart({target})
-                                if notify:replay_messages.append('Replayed '+target+' from the beginning.' if count else 'Replay target is not active: '+target+'. Use its matching pose, or assign your clip to an idle slot.')
+                                if notify:replay_messages.append('Applied anim to '+target+' and restarted it.' if count else 'Apply anim target is not active: '+target+'. Use its matching pose, or assign your clip to an idle slot.')
                             except AnimationChanging:
                                 if time.monotonic()<deadline:continue
-                                if notify:replay_messages.append('Animation is transitioning. Press the replay key again.')
+                                if notify:replay_messages.append('Animation is transitioning. Press the apply anim key again.')
                             except (OSError,RuntimeError,ValueError) as e:
-                                if notify:replay_messages.append('Replay unavailable: '+str(e))
+                                if notify:replay_messages.append('Apply anim unavailable: '+str(e))
                             pending_restarts.pop(target,None)
                     if restored:self.log(f'Restored {restored} removed replacements.')
                     if report:

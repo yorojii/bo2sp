@@ -31,9 +31,11 @@ You can change clips while the importer is active. Clicking the same
 clip again restarts it from the beginning if that target is currently
 playing on your character. A running or death slot plays when BO2 uses
 that action. A one-shot clip in an idle slot may hold its final pose.
-Select a clip, then press F6 with BO2 in the foreground to apply and replay it.
-The Replay hotkey checkbox and key dropdown let you disable or change it.
-Replay now performs the same action from the tool. Each press restarts
+Select a clip, then press F6 with BO2 in the foreground to apply it and
+restart it from the beginning (the apply anim key). You can hold another
+game button, such as aim or sprint, while pressing it. The Apply anim
+hotkey checkbox and key dropdown let you disable or change it.
+Apply anim now performs the same action from the tool. Each press restarts
 the clip once; holding the key does not repeatedly restart it. The key
 and selected clip are saved. Choose a key unused by your game controls.
 With Follow current animation enabled, every press applies the selected
@@ -43,9 +45,9 @@ then return to BO2 and press F6. Imports start automatically if needed.
 With Follow disabled, F6 uses the slot displayed in BO2 slot to replace.
 That locked slot must currently contribute to your character's pose.
 To play a one-shot clip on demand, lock a standing idle slot and apply
-your clip there, then stay in that idle pose and press the replay key.
+your clip there, then stay in that idle pose and press the apply anim key.
 If you change weapon or stance, BO2 can use a different idle slot. Follow
-current animation handles that change on the next press. Replay does
+current animation handles that change on the next press. Apply anim does
 not force an inactive locked running or death slot onto an idle character.
 Your character can blend several slots, so replace the contributing
 Body slots shown in Live target if the original pose still blends in.
