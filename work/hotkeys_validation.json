@@ -1,0 +1,21 @@
+{
+  "press_fires_once_while_held": true,
+  "press_fires_again_after_release": true,
+  "ignored_unless_game_focused": true,
+  "capture_reports_any_key": true,
+  "escape_cancels_capture": true,
+  "key_names": [
+    "F6",
+    "Right Alt",
+    "A"
+  ],
+  "legacy_f6_profile_loads": true,
+  "apply_anim_any_key_saved": true,
+  "button_hotkey_label": "Lock current target  [K]",
+  "hotkey_presses_button": true,
+  "conflict_moves_key": "F8 \u2192 Clear selection (moved from Apply anim). Works while BO2 is focused.",
+  "game_key_warning": true,
+  "disabled_apply_anim_ignored": true,
+  "hotkeys_reload": true,
+  "active_bindings": true
+}

@@ -34,7 +34,13 @@ that action. A one-shot clip in an idle slot may hold its final pose.
 Select a clip, then press F6 with BO2 in the foreground to apply it and
 restart it from the beginning (the apply anim key). You can hold another
 game button, such as aim or sprint, while pressing it. The Apply anim
-hotkey checkbox and key dropdown let you disable or change it.
+hotkey checkbox turns it off; click the key button next to it, then press
+any keyboard key to change it (Esc cancels).
+
+Right-click any other button, such as Use selected clip or Stop & restore,
+and choose Set hotkey to give it a key. The key is shown on the button and
+presses it while BO2 is in the foreground. Giving a key to a second button
+moves it there. Keys still reach the game, so avoid keys your game uses.
 Apply anim now performs the same action from the tool. Each press restarts
 the clip once; holding the key does not repeatedly restart it. The key
 and selected clip are saved. Choose a key unused by your game controls.

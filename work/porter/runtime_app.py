@@ -6,7 +6,7 @@ from ctypes import wintypes
 from runtime import Session,decode,load_clip,body_clip,k
 from camera import install_camera
 from live_target import LiveTargetReader,AnimationChanging
-from replay_hotkey import ReplayHotkey,KEYS
+from replay_hotkey import HotkeyListener,KEYS,GAME_KEYS,key_name
 
 ROOT=Path(sys.executable).resolve().parent if getattr(sys,'frozen',False) else Path(__file__).resolve().parent
 TOOLS=ROOT/'tools';STATE=ROOT/'state';STATE.mkdir(exist_ok=True)
@@ -96,8 +96,11 @@ class App(tk.Tk):
         self.worker_wake=threading.Event();self.replay_target=profile.get('replay',{}).get('target','')
         replay_source=profile.get('replay',{}).get('source','')
         self.replay_path=str((ROOT/replay_source).resolve()) if replay_source and (ROOT/replay_source).is_file() else self.mapping.get(self.replay_target,'')
-        replay_key=profile.get('replay',{}).get('key','F6')
-        self.replay_key=tk.StringVar(value=replay_key if replay_key in KEYS else 'F6')
+        # Apply anim key: any keyboard key saved as vk + name; older profiles only saved an F-key/numpad name.
+        replay=profile.get('replay',{});vk=replay.get('vk',KEYS.get(replay.get('key'),KEYS['F6']))
+        self.apply_vk=int(vk or 0);self.replay_key=tk.StringVar(value=(replay.get('key') if 'vk' in replay else key_name(self.apply_vk)) if self.apply_vk else 'None')
+        self.hotkeys={action:{'vk':int(v['vk']),'name':str(v.get('name') or key_name(v['vk']))} for action,v in profile.get('hotkeys',{}).items() if isinstance(v,dict) and v.get('vk')}
+        self.actions={};self.capture_action=None
         self.replay_enabled=tk.BooleanVar(value=profile.get('replay',{}).get('enabled',True))
         self.replay_note=tk.StringVar();self.replay_error_shown=False
         self.bo2.trace_add('write',lambda *args:setattr(self,'observer_folder',self.bo2.get()))
@@ -107,22 +110,22 @@ class App(tk.Tk):
         ttk.Label(body,text='Yoroji Tool',style='Title.TLabel').grid(row=0,column=0,sticky='w')
         ttk.Label(body,text='CoD4 single-player & multiplayer / MW2 actor animations → BO2 Redacted MP').grid(row=1,column=0,sticky='w',pady=(3,10))
         row=ttk.Frame(body);row.grid(row=2,column=0,sticky='ew',pady=4)
-        ttk.Label(row,text='BO2 folder').pack(side='left',padx=(0,12));ttk.Entry(row,textvariable=self.bo2).pack(side='left',fill='x',expand=True);ttk.Button(row,text='Game folders…',command=self.settings).pack(side='left',padx=(8,0))
+        ttk.Label(row,text='BO2 folder').pack(side='left',padx=(0,12));ttk.Entry(row,textvariable=self.bo2).pack(side='left',fill='x',expand=True);self.action_button(row,'game_folders','Game folders…',self.settings).pack(side='left',padx=(8,0))
         row=ttk.Frame(body);row.grid(row=3,column=0,sticky='ew',pady=8)
-        self.scanbutton=ttk.Button(row,text='Load CoD4 basics',command=self.load);self.scanbutton.pack(side='left')
-        ttk.Button(row,text='Import animation file…',command=self.import_clip).pack(side='left',padx=6)
-        self.indexbutton=ttk.Button(row,text='Refresh source libraries',command=self.reindex);self.indexbutton.pack(side='left')
+        self.scanbutton=self.action_button(row,'load_basics','Load CoD4 basics',self.load);self.scanbutton.pack(side='left')
+        self.action_button(row,'import_file','Import animation file…',self.import_clip).pack(side='left',padx=6)
+        self.indexbutton=self.action_button(row,'refresh_libraries','Refresh source libraries',self.reindex);self.indexbutton.pack(side='left')
         live_panel=ttk.LabelFrame(body,text='Live character target',padding=8);live_panel.grid(row=4,column=0,sticky='ew',pady=4)
         ttk.Label(live_panel,textvariable=self.detected,font=('Segoe UI',11,'bold')).pack(anchor='w')
         live_controls=ttk.Frame(live_panel);live_controls.pack(fill='x',pady=(5,0))
         ttk.Checkbutton(live_controls,text='Follow current animation',variable=self.follow_live,command=self.follow_changed).pack(side='left')
-        ttk.Button(live_controls,text='Lock current target',command=self.lock_current).pack(side='left',padx=10)
+        self.action_button(live_controls,'lock_target','Lock current target',self.lock_current).pack(side='left',padx=10)
         ttk.Label(live_controls,textvariable=self.target_note).pack(side='left',padx=6)
         replay_controls=ttk.Frame(live_panel);replay_controls.pack(fill='x',pady=(6,0))
         ttk.Checkbutton(replay_controls,text='Apply anim hotkey',variable=self.replay_enabled,command=self.replay_settings_changed).pack(side='left')
-        self.replay_keybox=ttk.Combobox(replay_controls,textvariable=self.replay_key,values=list(KEYS),state='readonly',width=7);self.replay_keybox.pack(side='left',padx=8)
-        self.replay_keybox.bind('<<ComboboxSelected>>',lambda event:self.replay_settings_changed())
-        ttk.Button(replay_controls,text='Apply anim now',command=self.request_replay).pack(side='left')
+        self.replay_keybutton=ttk.Button(replay_controls,textvariable=self.replay_key,width=12,command=lambda:self.begin_capture('apply_anim'));self.replay_keybutton.pack(side='left',padx=8)
+        self.replay_keybutton.bind('<Button-3>',lambda event:self.hotkey_menu(event,'apply_anim'))
+        self.action_button(replay_controls,'apply_anim','Apply anim now',self.request_replay).pack(side='left')
         ttk.Label(replay_controls,textvariable=self.replay_note,wraplength=590).pack(side='left',padx=12)
         self.notebook=ttk.Notebook(body);self.notebook.grid(row=5,column=0,sticky='nsew',pady=8);self.panels={};self.targetboxes=[]
         for game in ('CoD4','MW2 Actors'):
@@ -134,32 +137,32 @@ class App(tk.Tk):
             table=ttk.Frame(panel);table.grid(row=2,column=0,sticky='nsew');tree=ttk.Treeview(table,columns=('name','zone','duration','loop','bones'),show='headings',selectmode='browse')
             for key,label,width in [('name','Source animation',420),('zone','Scene / zone',170),('duration','Seconds',85),('loop','Loop',60),('bones','Bones',60)]:tree.heading(key,text=label);tree.column(key,width=width,stretch=key=='name')
             tree.pack(side='left',fill='both',expand=True);scroll=ttk.Scrollbar(table,orient='vertical',command=tree.yview);scroll.pack(side='right',fill='y');tree.configure(yscrollcommand=scroll.set)
-            footer=ttk.Frame(panel);footer.grid(row=3,column=0,sticky='ew',pady=(10,0));ttk.Label(footer,text='BO2 slot to replace').pack(side='left');combo=ttk.Combobox(footer,textvariable=self.target,values=self.targets,width=43);combo.pack(side='left',padx=8);self.targetboxes.append(combo);ttk.Button(footer,text='Use selected clip',command=lambda g=game:self.use_clip(g)).pack(side='left')
+            footer=ttk.Frame(panel);footer.grid(row=3,column=0,sticky='ew',pady=(10,0));ttk.Label(footer,text='BO2 slot to replace').pack(side='left');combo=ttk.Combobox(footer,textvariable=self.target,values=self.targets,width=43);combo.pack(side='left',padx=8);self.targetboxes.append(combo);self.action_button(footer,'use_clip:'+game,'Use selected clip',lambda g=game:self.use_clip(g)).pack(side='left')
             combo.bind('<<ComboboxSelected>>',self.manual_target);combo.bind('<KeyPress>',self.manual_target)
             self.panels[game]=(query,zone,zbox,count,tree)
             query.trace_add('write',lambda *args,g=game:self.render_catalog(g));zone.trace_add('write',lambda *args,g=game:self.render_catalog(g));tree.bind('<<TreeviewSelect>>',lambda event,g=game:self.choose_target(g))
         panel=ttk.Frame(self.notebook,padding=10);self.notebook.add(panel,text='Selected replacements');panel.columnconfigure(0,weight=1);panel.rowconfigure(0,weight=1)
         self.tree=ttk.Treeview(panel,columns=('target','source'),show='headings',selectmode='extended');self.tree.heading('target',text='BO2 animation slot');self.tree.heading('source',text='Source clip');self.tree.column('target',width=410);self.tree.column('source',width=410);self.tree.grid(row=0,column=0,sticky='nsew')
         scroll=ttk.Scrollbar(panel,orient='vertical',command=self.tree.yview);scroll.grid(row=0,column=1,sticky='ns');self.tree.configure(yscrollcommand=scroll.set)
-        controls=ttk.Frame(panel);controls.grid(row=1,column=0,sticky='w',pady=(10,0));ttk.Button(controls,text='Remove selected',command=self.remove).pack(side='left');ttk.Button(controls,text='Clear selection',command=self.clear).pack(side='left',padx=8)
+        controls=ttk.Frame(panel);controls.grid(row=1,column=0,sticky='w',pady=(10,0));self.action_button(controls,'remove_selected','Remove selected',self.remove).pack(side='left');self.action_button(controls,'clear_selection','Clear selection',self.clear).pack(side='left',padx=8)
         live_tab=ttk.Frame(self.notebook,padding=10);self.notebook.add(live_tab,text='Live target');live_tab.columnconfigure(0,weight=1);live_tab.rowconfigure(1,weight=1)
         ttk.Label(live_tab,text='These are the animation layers contributing to your current character pose.').grid(row=0,column=0,sticky='w',pady=(0,8))
         self.active_tree=ttk.Treeview(live_tab,columns=('target','layer','weight','action','replacement'),show='headings',selectmode='browse')
         for key,label,width in [('target','Active BO2 animation',330),('layer','Layer',100),('weight','Blend',70),('action','Action',140),('replacement','Your replacement',300)]:self.active_tree.heading(key,text=label);self.active_tree.column(key,width=width,stretch=key in ('target','replacement'))
         self.active_tree.grid(row=1,column=0,sticky='nsew');self.active_tree.tag_configure('upper',foreground='#777777')
         live_footer=ttk.Frame(live_tab);live_footer.grid(row=2,column=0,sticky='ew',pady=(10,0))
-        ttk.Button(live_footer,text='Use highlighted target',command=self.lock_highlighted).pack(side='left')
+        self.action_button(live_footer,'use_highlighted','Use highlighted target',self.lock_highlighted).pack(side='left')
         ttk.Label(live_footer,text='Choose a Body layer for a full-character animation.').pack(side='left',padx=12)
         row=ttk.Frame(body);row.grid(row=6,column=0,sticky='ew',pady=9)
-        self.startbutton=ttk.Button(row,text='Launch BO2 & apply',command=self.start);self.startbutton.pack(side='left');ttk.Button(row,text='Stop & restore',command=self.stop).pack(side='left',padx=8)
-        ttk.Button(row,text='Enable third-person camera',command=self.enable_camera).pack(side='left',padx=4)
+        self.startbutton=self.action_button(row,'launch_apply','Launch BO2 & apply',self.start);self.startbutton.pack(side='left');self.action_button(row,'stop_restore','Stop & restore',self.stop).pack(side='left',padx=8)
+        self.action_button(row,'enable_camera','Enable third-person camera',self.enable_camera).pack(side='left',padx=4)
         ttk.Label(body,textvariable=self.live,font=('Segoe UI',11,'bold')).grid(row=7,column=0,sticky='w')
         ttk.Label(body,textvariable=self.status,wraplength=1010).grid(row=8,column=0,sticky='w',pady=5)
         self.logbox=tk.Text(body,height=4,wrap='word',state='disabled',font=('Consolas',9));self.logbox.grid(row=9,column=0,sticky='ew')
-        ttk.Label(body,text='Use selected clip applies live when your match is detected. Closing Yoroji Tool restores the animations.').grid(row=10,column=0,sticky='w',pady=(8,0))
+        ttk.Label(body,text='Use selected clip applies live when your match is detected. Right-click any button to give it a hotkey. Closing Yoroji Tool restores the animations.').grid(row=10,column=0,sticky='w',pady=(8,0))
         self.protocol('WM_DELETE_WINDOW',self.close_app);self.read_library();self.refresh()
         self.observer=threading.Thread(target=self.observe_game);self.observer.start()
-        self.hotkey=ReplayHotkey();self.after(20,self.poll_replay_key)
+        self.hotkey=HotkeyListener();self.after(20,self.poll_replay_key)
     def post(self,fn):
         if not self.closing:self.after(0,fn)
     def log(self,text):
@@ -196,15 +199,59 @@ class App(tk.Tk):
     def poll_replay_key(self):
         if self.closing:return
         pid=self.session.pid if self.session else self.last_snapshot.get('pid',0)
-        self.hotkey.configure(self.replay_key.get(),pid,self.replay_enabled.get())
+        self.hotkey.configure(self.bindings(active=True),pid)
         if self.hotkey.error and not self.replay_error_shown:
-            self.log('Apply anim key unavailable: '+self.hotkey.error+'. The Apply anim now button still works.');self.replay_error_shown=True
+            self.log('Hotkeys unavailable: '+self.hotkey.error+'. The buttons still work.');self.replay_error_shown=True
         while True:
-            try:
-                pressed_pid=self.hotkey.events.get_nowait()
-                if pressed_pid==pid and self.replay_enabled.get():self.request_replay()
+            try:event=self.hotkey.events.get_nowait()
             except queue.Empty:break
+            if event[0]=='capture':self.assign_hotkey(event[1],event[2])
+            elif event[0]=='cancel':self.capture_action=None;self.status.set('Hotkey unchanged.')
+            elif event[2]==pid:self.run_action(event[1])
         self.after(20,self.poll_replay_key)
+    # Hotkeys: Apply anim has its own key (saved under 'replay'); any other button gets one by right-click.
+    def action_button(self,parent,action,text,command):
+        button=ttk.Button(parent,text=text,command=command);self.actions[action]=(button,text)
+        button.bind('<Button-3>',lambda event:self.hotkey_menu(event,action));self.label_action(action);return button
+    def action_label(self,action):return 'Apply anim' if action=='apply_anim' else self.actions[action][1]
+    def label_action(self,action):
+        if action=='apply_anim' or action not in self.actions:return
+        button,text=self.actions[action];key=self.hotkeys.get(action)
+        button.configure(text=f"{text}  [{key['name']}]" if key else text)
+    def bindings(self,active=False):
+        keys={v['vk']:action for action,v in self.hotkeys.items()}
+        if self.apply_vk and (self.replay_enabled.get() or not active):keys[self.apply_vk]='apply_anim'
+        return keys
+    def hotkey_menu(self,event,action):
+        menu=tk.Menu(self,tearoff=0);name=self.replay_key.get() if action=='apply_anim' and self.apply_vk else self.hotkeys.get(action,{}).get('name')
+        menu.add_command(label=f'Change hotkey ({name})…' if name else 'Set hotkey…',command=lambda:self.begin_capture(action))
+        if name:menu.add_command(label='Clear hotkey',command=lambda:self.clear_hotkey(action))
+        menu.tk_popup(event.x_root,event.y_root)
+    def begin_capture(self,action):
+        if self.hotkey.error:self.status.set('Hotkeys unavailable: '+self.hotkey.error);return
+        self.capture_action=action;self.focus_set();self.hotkey.capture() # Focus the window so the key can't re-press a button.
+        self.status.set(f'Press any key for {self.action_label(action)}. Esc cancels.')
+    def unbind_action(self,action):
+        if action=='apply_anim':self.apply_vk=0;self.replay_key.set('None')
+        else:self.hotkeys.pop(action,None);self.label_action(action)
+    def assign_hotkey(self,vk,name):
+        action=self.capture_action;self.capture_action=None
+        if not action:return
+        moved=[other for key,other in self.bindings().items() if key==vk and other!=action]
+        for other in moved:self.unbind_action(other)
+        if action=='apply_anim':self.apply_vk=vk;self.replay_key.set(name)
+        else:self.hotkeys[action]={'vk':vk,'name':name};self.label_action(action)
+        notes=['moved from '+self.action_label(other) for other in moved]
+        if vk in GAME_KEYS:notes.append('BO2 still receives this key, so it also does its game action')
+        self.status.set(f'{name} → {self.action_label(action)}'+(' ('+'; '.join(notes)+')' if notes else '')+'. Works while BO2 is focused.');self.save()
+    def clear_hotkey(self,action):
+        self.unbind_action(action);self.status.set('Hotkey cleared: '+self.action_label(action));self.save()
+    def run_action(self,action):
+        if action=='apply_anim':
+            if self.replay_enabled.get():self.request_replay()
+        elif action in self.actions:
+            button=self.actions[action][0]
+            if button.instate(['!disabled']):button.invoke()
     def update_target_note(self):
         mode='Automatic target' if self.follow_live.get() else 'Locked target'
         self.target_note.set(mode+': '+self.target.get())
@@ -322,7 +369,7 @@ class App(tk.Tk):
         if replay_source:
             try:replay_source=str(Path(replay_source).resolve().relative_to(ROOT))
             except ValueError:pass
-        (ROOT/'profile.json').write_text(json.dumps({'cod4':self.cod4.get(),'bo2':self.bo2.get(),'mw2':self.mw2.get(),'mapping':mapping,'targets':self.targets,'replay':{'key':self.replay_key.get(),'enabled':self.replay_enabled.get(),'target':self.replay_target,'source':replay_source}},indent=2))
+        (ROOT/'profile.json').write_text(json.dumps({'cod4':self.cod4.get(),'bo2':self.bo2.get(),'mw2':self.mw2.get(),'mapping':mapping,'targets':self.targets,'replay':{'key':self.replay_key.get(),'vk':self.apply_vk,'enabled':self.replay_enabled.get(),'target':self.replay_target,'source':replay_source},'hotkeys':self.hotkeys},indent=2))
     def settings(self):
         dialog=tk.Toplevel(self);dialog.title('Game folders');dialog.geometry('780x220');dialog.transient(self)
         for title,var in [('CoD4',self.cod4),('MW2',self.mw2),('BO2 Redacted',self.bo2)]:
