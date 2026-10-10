@@ -108,7 +108,7 @@ class App(tk.Tk):
         style=ttk.Style(self);style.theme_use('clam');style.configure('Title.TLabel',font=('Segoe UI',20,'bold'));style.configure('TButton',padding=(9,6))
         body=ttk.Frame(self,padding=18);body.pack(fill='both',expand=True);body.columnconfigure(0,weight=1);body.rowconfigure(5,weight=1)
         ttk.Label(body,text='Yoroji Tool',style='Title.TLabel').grid(row=0,column=0,sticky='w')
-        ttk.Label(body,text='CoD4 single-player & multiplayer / MW2 actor / BO2 single-player animations → BO2 Redacted MP').grid(row=1,column=0,sticky='w',pady=(3,10))
+        ttk.Label(body,text='CoD4 single-player & multiplayer / MW2 actor / BO2 single-player & Zombies animations → BO2 Redacted MP').grid(row=1,column=0,sticky='w',pady=(3,10))
         row=ttk.Frame(body);row.grid(row=2,column=0,sticky='ew',pady=4)
         ttk.Label(row,text='BO2 folder').pack(side='left',padx=(0,12));ttk.Entry(row,textvariable=self.bo2).pack(side='left',fill='x',expand=True);self.action_button(row,'game_folders','Game folders…',self.settings).pack(side='left',padx=(8,0))
         row=ttk.Frame(body);row.grid(row=3,column=0,sticky='ew',pady=8)
@@ -128,7 +128,7 @@ class App(tk.Tk):
         self.action_button(replay_controls,'apply_anim','Apply anim now',self.request_replay).pack(side='left')
         ttk.Label(replay_controls,textvariable=self.replay_note,wraplength=590).pack(side='left',padx=12)
         self.notebook=ttk.Notebook(body);self.notebook.grid(row=5,column=0,sticky='nsew',pady=8);self.panels={};self.targetboxes=[]
-        for game in ('CoD4','MW2 Actors','BO2 SP'):
+        for game in ('CoD4','MW2 Actors','BO2 SP','BO2 Zombies'):
             panel=ttk.Frame(self.notebook,padding=10);self.notebook.add(panel,text=game);panel.columnconfigure(0,weight=1);panel.rowconfigure(2,weight=1)
             controls=ttk.Frame(panel);controls.grid(row=0,column=0,sticky='ew')
             ttk.Label(controls,text='Search').pack(side='left');query=tk.StringVar();ttk.Entry(controls,textvariable=query,width=37).pack(side='left',padx=7)

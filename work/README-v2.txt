@@ -1,5 +1,5 @@
 Yoroji Tool
-CoD4 single-player / multiplayer, MW2 actor and BO2 single-player animations in BO2 Redacted MP
+CoD4 single-player / multiplayer, MW2 actor and BO2 single-player / Zombies animations in BO2 Redacted MP
 
 Open Yoroji Tool.exe. Your game folders and saved animation choices are ready.
 Click "Launch BO2 & apply" to launch BO2 or attach to your running game.
@@ -18,7 +18,7 @@ Choosing animations
 1. Start a multiplayer match. Live character target shows your current
    BO2 body animation, such as Idle, Running or Sprinting.
 2. Click "Lock current target" to keep that slot while browsing clips.
-3. Open CoD4, MW2 Actors or BO2 SP and search a clip or filter by scene / zone.
+3. Open CoD4, MW2 Actors, BO2 SP or BO2 Zombies and search a clip or filter by scene / zone.
 4. Select a clip and click "Use selected clip". It applies to the running
    match automatically. Keep Yoroji Tool open.
 Leave "Follow current animation" checked to select your current slot
@@ -67,11 +67,13 @@ The detector follows your local character. Replacements affect every
 character using the selected BO2 asset slot in this game session.
 
 The libraries contain 2,171 CoD4 character clips, 3,047 MW2 actor clips
-and 7,222 BO2 single-player clips extracted from your installations. The CoD4 tab includes single-player
+7,222 BO2 single-player clips and 2,218 BO2 Zombies clips extracted from
+your installations. The CoD4 tab includes single-player
 scenes and multiplayer animations. MW2 Actors contains single-player
 NPC/body clips, including mission-specific scenes. BO2 SP contains the
 campaign and Strike Force AI and cinematic character clips (ai_, ch_ ...),
-read from the campaign zones in your BO2 folder's zone/all.
+read from the campaign zones in your BO2 folder's zone/all. BO2 Zombies
+contains zombie AI clips plus the Zombies player body and upper-body clips.
 "Load CoD4 basics" resets to 142 compatible basics, including 22 deaths,
 plus running, walking, sprinting, crouching, crawling, jumping and stances.
 "Refresh source libraries" re-extracts character clips from the game folders.
