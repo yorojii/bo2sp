@@ -1,0 +1,26 @@
+{
+  "fresh_detects_bo2": "F:\\Games\\Call of Duty Black Ops IIOLD",
+  "fresh_build_seconds": 378.6,
+  "fresh_status": "Libraries built: BO2 SP 7,222, BO2 Zombies 2,218. Not installed, kept as they were: CoD4, MW2 Actors.",
+  "fresh_matches_release": {
+    "BO2 SP": 7222,
+    "BO2 Zombies": 2218,
+    "byte_identical": true
+  },
+  "skipped_games_reported": [
+    "CoD4: game folder not found; skipped.",
+    "MW2 Actors: game folder not found; skipped."
+  ],
+  "library_size_mb": 549.3,
+  "rebuild_seconds": 8.6,
+  "rebuild_counts": {
+    "CoD4": 2171,
+    "MW2 Actors": 3047,
+    "BO2 SP": 7222,
+    "BO2 Zombies": 2218
+  },
+  "missing_games_keep_clips": true,
+  "mapping_repointed_to_rebuilt_clip": true,
+  "kept_game_mapping_unchanged": true,
+  "apply_anim_source_repointed": true
+}
