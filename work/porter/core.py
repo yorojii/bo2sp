@@ -528,10 +528,13 @@ class Core:
                 if result is None:self.post(lambda:self.set_status('Library build cancelled. Build again to continue where it stopped.'));return
                 catalog,built,skipped=result
                 kept=[x for x in old if x['game'] in skipped] # A game that isn't installed keeps its existing clips.
-                for item in catalog+kept:item['path']=str(Path(item['path']).resolve().relative_to(ROOT))
+                for item in catalog+kept:
+                    try:item['path']=str(Path(item['path']).resolve().relative_to(ROOT))
+                    except ValueError:item['path']=str(Path(item['path']).resolve()) # Clips outside the tool folder stay absolute.
                 write_atomic(ROOT/'library/catalog.json',json.dumps(catalog+kept))
                 self.post(lambda:self.after_build(old,built,skipped))
-            except Exception as e:self.log(str(e));self.post(lambda:self.set_status('Library build stopped: '+str(e)))
+            except Exception as e:
+                message=str(e);self.log(message);self.post(lambda:self.set_status('Library build stopped: '+message))
             finally:self.post(self.build_finished)
         self.indexthread=threading.Thread(target=work);self.indexthread.start();self.busy_changed()
     def build_finished(self):self.building=False;self.busy_changed()

@@ -14,8 +14,9 @@ sys.path.insert(0,'work/porter')
 import core
 from test_support import FakeUI,close
 release=Path('outputs/BO2SPAnims').resolve();root=Path('work/fresh_install_test').resolve()
-if root.exists():shutil.rmtree(root)
-(root/'tools').mkdir(parents=True);shutil.copy2(release/'tools/Unlinker.exe',root/'tools/Unlinker.exe')
+phase_b_only='phase-b' in sys.argv # Reuse the folder and cache from a previous full run.
+if root.exists() and not phase_b_only:shutil.rmtree(root)
+if not phase_b_only:(root/'tools').mkdir(parents=True);shutil.copy2(release/'tools/Unlinker.exe',root/'tools/Unlinker.exe')
 core.ROOT=root;core.TOOLS=root/'tools';core.STATE=root/'state';core.STATE.mkdir(exist_ok=True);result={}
 def build(app,ui,limit=3600):
     app.reindex();start=time.monotonic();end=start+limit
@@ -23,8 +24,10 @@ def build(app,ui,limit=3600):
     assert not app.building,'build did not finish';return round(time.monotonic()-start,1)
 def digest(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
-ui=FakeUI();app=core.Core(ui);app.start=lambda:None
+ui=FakeUI();app=core.Core(ui) if not phase_b_only else None
 try:
+    if phase_b_only:raise SystemExit
+    app.start=lambda:None
     ui.pump(0.2);assert app.bo2 and core.valid_folder('bo2',app.bo2) and not app.catalog;result['fresh_detects_bo2']=app.bo2
     result['fresh_build_seconds']=build(app,ui);result['fresh_status']=app.status
     released={app.clip_key(x):x for x in json.loads((release/'library/catalog.json').read_text()) if x['game'] in ('BO2 SP','BO2 Zombies')}
@@ -35,7 +38,9 @@ try:
     result['fresh_matches_release']={'BO2 SP':sum(x['game']=='BO2 SP' for x in built.values()),'BO2 Zombies':sum(x['game']=='BO2 Zombies' for x in built.values()),'byte_identical':True}
     result['skipped_games_reported']=[line for line in ui.logs if 'skipped' in line]
     result['library_size_mb']=round(sum(f.stat().st_size for f in (root/'library').rglob('*') if f.is_file())/2**20,1)
-finally:close(app,ui)
+except SystemExit:pass
+finally:
+    if app:close(app,ui)
 
 # Phase B: an existing install (release catalog + mapping) rebuilt from the cache.
 catalog=json.loads((release/'library/catalog.json').read_text())
@@ -53,4 +58,5 @@ try:
     assert app.mapping['pb_crouch_alert']==cod4['path'];result['kept_game_mapping_unchanged']=True
     assert app.replay_path==app.mapping['pb_stand_alert'];result['apply_anim_source_repointed']=True
 finally:close(app,ui)
-Path('work/fresh_install_validation.json').write_text(json.dumps(result,indent=2));print(json.dumps(result,indent=1))
+out=Path('work/fresh_install_validation.json');previous=json.loads(out.read_text()) if phase_b_only and out.exists() else {}
+out.write_text(json.dumps({**previous,**result},indent=2));print(json.dumps(result,indent=1))
