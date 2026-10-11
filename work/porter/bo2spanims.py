@@ -130,7 +130,7 @@ class LibraryTab(QtWidgets.QWidget):
         self.table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows);self.table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         self.table.verticalHeader().hide();self.table.setShowGrid(False);self.table.setWordWrap(False);self.table.verticalHeader().setDefaultSectionSize(22)
         header=self.table.horizontalHeader();header.setSectionResizeMode(1,QtWidgets.QHeaderView.Stretch);header.setHighlightSections(False);header.setDefaultAlignment(Qt.AlignLeft|Qt.AlignVCenter)
-        for column,width in ((0,28),(2,230),(3,60),(4,50),(5,56)):self.table.setColumnWidth(column,width)
+        for column,width in ((0,28),(2,340 if game=='Favorites' else 230),(3,60),(4,50),(5,56)):self.table.setColumnWidth(column,width)
         self.table.selectionModel().currentRowChanged.connect(lambda current,previous:self.core.choose_clip(self.selected()))
         self.table.doubleClicked.connect(lambda index:self.core.use_clip(self.selected()))
         self.slot=window.slot_box()
@@ -167,7 +167,7 @@ class TrafficLight(QtWidgets.QAbstractButton):
 class TrafficLights(QtWidgets.QWidget):
     def __init__(self,window):
         super().__init__();self.hovered=False;self.setStyleSheet('background:transparent')
-        box=QtWidgets.QHBoxLayout(self);box.setContentsMargins(0,0,6,0);box.setSpacing(8);self.lights={}
+        box=QtWidgets.QHBoxLayout(self);box.setContentsMargins(10,0,0,0);box.setSpacing(8);self.lights={}
         for kind,action in (('close',window.close),('minimize',window.showMinimized),('maximize',window.toggle_maximized)):
             light=TrafficLight(kind,self);light.clicked.connect(action);box.addWidget(light);self.lights[kind]=light
     def enterEvent(self,event):self.hovered=True;self.update_lights()
@@ -235,7 +235,7 @@ class Window(QtWidgets.QMainWindow):
         self.bo2_chip=label('BO2 ○ waiting',name='chip');self.import_chip=label('imports ○ off',name='chip')
         self.launch=self.action_button('launch_apply','▶ Launch BO2 && apply',self.core.start);self.stopbutton=self.action_button('stop_restore','■ Stop && restore',self.core.stop)
         self.lights=TrafficLights(self);self.titlebar=TitleBar(self)
-        self.titlebar.setLayout(row(self.lights,title,label('CoD4 / MW2 / BO2 SP / Zombies → BO2 Redacted',name='muted'),self.bo2_chip,self.import_chip,self.launch,self.stopbutton,stretch_at=3))
+        self.titlebar.setLayout(row(title,label('CoD4 / MW2 / BO2 SP / Zombies → BO2 Redacted',name='muted'),self.bo2_chip,self.import_chip,self.launch,self.stopbutton,self.lights,stretch_at=2))
         layout.addWidget(self.titlebar)
         self.card=QtWidgets.QFrame();self.card.setObjectName('card');self.glow(self.card);card=QtWidgets.QVBoxLayout(self.card);card.setContentsMargins(14,10,14,10);card.setSpacing(6)
         self.follow_label=label();self.detected=label();self.replay_note=label()
