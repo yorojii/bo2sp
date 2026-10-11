@@ -35,8 +35,9 @@ try:
     assert c.theme['h']==190 and window.styleSheet()!=before and json.loads((root/'profile.json').read_text())['theme']['h']==190;result['hue_slider_recolors_and_saves']=True
     window.glow_box.setChecked(False);pump(0.05);assert window.card.graphicsEffect() is None
     window.glow_box.setChecked(True);pump(0.05);assert window.card.graphicsEffect() is not None;result['glow_toggle']=True
-    assert window.watermark.pixmap() is not None and not window.watermark.pixmap().isNull();window.watermark.mousePressEvent(None)
-    assert c.status=='Channel link coming soon.';result['watermark_placeholder']=True
+    assert window.watermark.pixmap() is not None and not window.watermark.pixmap().isNull()
+    opened=[];bo2spanims.QtGui.QDesktopServices.openUrl=lambda url:opened.append(url.toString()) # Don't really open a browser.
+    window.watermark.mousePressEvent(None);assert opened==['https://www.youtube.com/@Yorojiii'],opened;result['watermark_opens_channel']=opened[0]
     lib=window.libraries['CoD4'];lib.query.setText('mantle');pump(0.05);assert 0<lib.model.rowCount()<50;lib.table.selectRow(0);pump(0.05)
     assert c.replay_path==c.catalog[lib.model.rows[0]]['path'];result['library_search_and_select']=lib.model.rowCount()
     window.buttons['favorite:CoD4'].click();pump(0.05);assert window.libraries['Favorites'].model.rowCount()==1

@@ -16,7 +16,7 @@
   "hotkey_label": "[K] \u25a0 Stop && restore",
   "hue_slider_recolors_and_saves": true,
   "glow_toggle": true,
-  "watermark_placeholder": true,
+  "watermark_opens_channel": "https://www.youtube.com/@Yorojiii",
   "library_search_and_select": 9,
   "favorite_buttons": true,
   "closed_cleanly": true

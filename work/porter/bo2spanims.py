@@ -11,7 +11,7 @@ from PySide6.QtCore import Qt
 from core import Core,GAMES,THEME_PRESETS,DEFAULT_THEME,k
 
 APP_NAME='BO2SPANIMS'
-CHANNEL_URL='' # Placeholder: the watermark links to the creator's channel once the URL is known.
+CHANNEL_URL='https://www.youtube.com/@Yorojiii' # The watermark opens the creator's channel.
 ASSETS=Path(getattr(sys,'_MEIPASS',Path(__file__).resolve().parent))/'assets'
 FONT='Consolas'
 
