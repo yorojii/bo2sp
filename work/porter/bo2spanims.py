@@ -359,16 +359,16 @@ class BackdropGrabber(QtCore.QObject):
             while not self.stop_event.is_set():
                 start=time.perf_counter()
                 if u.IsIconic(hwnd) or not u.IsWindowVisible(hwnd) or not u.GetWindowRect(hwnd,ctypes.byref(rect)):self.stop_event.wait(0.1);continue
-                width,height=rect.right-rect.left,rect.bottom-rect.top;half=(max(1,width//2),max(1,height//2))
+                width,height=rect.right-rect.left,rect.bottom-rect.top;full=(width,height)
                 if width>0 and height>0:
-                    if half!=size: # Reuse the DCs and bitmap until the window size changes.
-                        release();size=half;screen=u.GetDC(None);memory=g.CreateCompatibleDC(V(screen));bitmap=g.CreateCompatibleBitmap(V(screen),*half)
-                        old=g.SelectObject(V(memory),V(bitmap));g.SetStretchBltMode(V(memory),3) # COLORONCOLOR: fast; the blur hides the sampling.
-                        header=Header(ctypes.sizeof(Header),half[0],-half[1],1,32,0,0,0,0,0,0);pixels=ctypes.create_string_buffer(half[0]*half[1]*4)
-                    # Copy at half size straight from the screen; our window is excluded from capture.
-                    g.StretchBlt(V(memory),0,0,half[0],half[1],V(screen),rect.left,rect.top,width,height,0x00CC0020)
-                    if g.GetDIBits(V(memory),V(bitmap),0,half[1],pixels,ctypes.byref(header),0):
-                        shot=QtGui.QImage(pixels,half[0],half[1],half[0]*4,QtGui.QImage.Format_RGB32)
+                    if full!=size: # Reuse the DCs and bitmap until the window size changes.
+                        release();size=full;screen=u.GetDC(None);memory=g.CreateCompatibleDC(V(screen));bitmap=g.CreateCompatibleBitmap(V(screen),width,height)
+                        old=g.SelectObject(V(memory),V(bitmap))
+                        header=Header(ctypes.sizeof(Header),width,-height,1,32,0,0,0,0,0,0);pixels=ctypes.create_string_buffer(width*height*4)
+                    # Full-resolution copy of the screen behind (our window is excluded from capture), smooth-scaled below.
+                    g.BitBlt(V(memory),0,0,width,height,V(screen),rect.left,rect.top,0x00CC0020)
+                    if g.GetDIBits(V(memory),V(bitmap),0,height,pixels,ctypes.byref(header),0):
+                        shot=QtGui.QImage(pixels,width,height,width*4,QtGui.QImage.Format_RGB32)
                         small=shot.scaled(max(1,width//4),max(1,height//4),Qt.IgnoreAspectRatio,Qt.SmoothTransformation) # A copy, so pixels can be reused.
                         key=bytes(small.scaled(max(1,width//24),max(1,height//24)).constBits())
                         if key!=self.key:
