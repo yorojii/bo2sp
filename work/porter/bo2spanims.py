@@ -67,6 +67,117 @@ QMenu::item:selected{{background:{n['acc']};color:{n['ink']}}}
 QToolTip{{background:{n['panel']};color:{n['acc']};border:1px solid {n['dim']}}}
 """
 
+GLASS_FONT='Segoe UI Variable Text'
+def glass_palette(theme):
+    """Liquid glass: white text over a blurred backdrop, one accent; 'glass' sets how dark the tint behind panels is."""
+    h,s,l=theme['h'],theme['s'],theme['l'];tint=theme.get('glass',45)/100
+    return {'acc':hsl(h,s,max(l,45)),'accsoft':hsl(h,s,max(l,45),110),'text':QtGui.QColor(255,255,255),'mid':QtGui.QColor(255,255,255,165),
+            'dim':QtGui.QColor(255,255,255,46),'panel':QtGui.QColor(255,255,255,20),'panel2':QtGui.QColor(255,255,255,34),'sel':QtGui.QColor(255,255,255,40),
+            'bg':hsl(h,s*0.3,7,int(70+150*tint)),'solid':hsl(h,s*0.25,11),'ink':QtGui.QColor(255,255,255)}
+def rgba(color):return f'rgba({color.red()},{color.green()},{color.blue()},{color.alpha()})'
+def glass_stylesheet(c):
+    n={key:rgba(value) for key,value in c.items()}
+    return f"""
+QWidget{{background:transparent;color:{n['text']};font-family:'{GLASS_FONT}','Segoe UI';font-size:13px}}
+QFrame#window{{background:{n['bg']};border:1px solid {n['dim']};border-radius:14px}}
+QLabel#muted,QHeaderView::section{{color:{n['mid']}}}
+QLabel#title{{font-size:19px;font-weight:600;letter-spacing:0.5px}}
+QLabel#section{{color:{n['mid']};font-size:11px;font-weight:600;letter-spacing:1.5px;padding-top:6px}}
+QLabel#chip{{background:{n['panel2']};border:1px solid {n['dim']};border-radius:12px;padding:3px 11px}}
+QPushButton{{background:{n['panel2']};border:1px solid {n['dim']};border-top-color:rgba(255,255,255,90);border-radius:13px;padding:5px 14px}}
+QPushButton:hover{{background:rgba(255,255,255,52)}}
+QPushButton:pressed{{background:rgba(255,255,255,24)}}
+QPushButton:disabled{{color:{n['mid']};background:{n['panel']}}}
+QPushButton:checked{{background:{n['acc']};border-color:rgba(255,255,255,110);color:white}}
+QLineEdit,QComboBox,QDoubleSpinBox{{background:{n['panel2']};border:1px solid {n['dim']};border-radius:13px;padding:4px 12px;selection-background-color:{n['acc']};selection-color:white}}
+QPlainTextEdit{{background:{n['panel']};border:1px solid {n['dim']};border-radius:12px;padding:6px}}
+QLineEdit:focus,QComboBox:focus{{border-color:{n['acc']}}}
+QComboBox QAbstractItemView,QMenu,QToolTip,QDialog,QMessageBox,QInputDialog{{background:{n['solid']};color:{n['text']};border:1px solid {n['dim']}}}
+QComboBox QAbstractItemView{{selection-background-color:{n['acc']};selection-color:white}}
+QTableView,QTableWidget{{background:{n['panel']};border:1px solid {n['dim']};border-radius:14px;gridline-color:transparent;selection-background-color:{n['sel']};selection-color:white;outline:0}}
+QTableView::item{{padding:0 4px}}
+QHeaderView,QHeaderView::section{{background:transparent;border:none;padding:6px 8px}}
+QTabWidget::pane{{border:none}}
+QTabBar{{background:transparent}}
+QTabBar::tab{{background:transparent;border:1px solid transparent;border-radius:13px;padding:5px 14px;margin:0 3px 8px 0;color:{n['mid']}}}
+QTabBar::tab:selected{{background:{n['acc']};color:white;border-color:rgba(255,255,255,110)}}
+QTabBar::tab:hover:!selected{{background:{n['panel2']};color:white}}
+QCheckBox{{spacing:8px}}
+QCheckBox::indicator{{width:14px;height:14px;border:1px solid rgba(255,255,255,120);border-radius:4px;background:{n['panel']}}}
+QCheckBox::indicator:checked{{background:{n['acc']};border-color:rgba(255,255,255,160)}}
+QSlider::groove:horizontal{{height:4px;border-radius:2px;background:rgba(255,255,255,40)}}
+QSlider::sub-page:horizontal{{border-radius:2px;background:{n['acc']}}}
+QSlider::handle:horizontal{{background:white;width:16px;height:16px;margin:-6px 0;border-radius:8px}}
+QScrollBar:vertical{{background:transparent;width:10px;margin:2px}}
+QScrollBar::handle:vertical{{background:rgba(255,255,255,60);min-height:24px;border-radius:4px}}
+QScrollBar::add-line,QScrollBar::sub-line{{height:0}}
+QScrollArea{{border:none}}
+QFrame#rule{{background:{n['dim']};max-height:1px;min-height:1px}}
+QFrame#card{{background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 {n['accsoft']},stop:1 rgba(255,255,255,18));border:1px solid rgba(255,255,255,70);border-top-color:rgba(255,255,255,130);border-radius:18px}}
+QFrame#card QLabel,QFrame#card QCheckBox{{background:transparent;color:white}}
+QFrame#card QPushButton{{color:white}}
+QFrame#card QPushButton:checked{{background:white;color:{rgba(c['solid'])}}}
+QFrame#card QFrame#rule{{background:rgba(255,255,255,60)}}
+"""
+
+def android_palette(theme):
+    """The joke style: posterized accent (hue snapped to 45° steps), harsh contrast, no smoothing anywhere."""
+    h,s=146,69 # Always Android green (#3DDC84-ish), whatever accent the other styles use.
+    return {'acc':hsl(h,s,55),'mid':hsl(h,s,75),'dim':hsl(h,s,28),'bg':QtGui.QColor(16,16,16),'panel':QtGui.QColor(40,40,40),'sel':hsl(h,s,25),'ink':QtGui.QColor(0,0,0),'text':QtGui.QColor(255,255,255)}
+def android_stylesheet(c):
+    n={key:value.name() for key,value in c.items()}
+    return f"""
+QWidget{{background:{n['bg']};color:{n['text']};font-family:'Fixedsys','Terminal','Courier New';font-size:14px;font-weight:bold}}
+QFrame#window{{border:3px solid {n['acc']}}}
+QLabel#muted,QHeaderView::section{{color:{n['mid']}}}
+QLabel#title{{font-size:20px;color:{n['acc']}}}
+QLabel#section{{color:{n['acc']};padding-top:6px}}
+QLabel#chip{{border:2px solid {n['acc']};padding:2px 6px}}
+QPushButton{{background:{n['panel']};border:2px outset {n['mid']};padding:3px 8px}}
+QPushButton:hover{{background:{n['sel']}}}
+QPushButton:pressed{{border-style:inset}}
+QPushButton:disabled{{color:#777777}}
+QPushButton:checked{{background:{n['acc']};color:#000000;border-style:inset}}
+QLineEdit,QComboBox,QDoubleSpinBox,QPlainTextEdit{{background:#000000;border:2px inset {n['mid']};padding:2px 4px;selection-background-color:{n['acc']};selection-color:#000000}}
+QComboBox QAbstractItemView,QMenu,QToolTip{{background:{n['panel']};border:2px solid {n['acc']};selection-background-color:{n['acc']};selection-color:#000000}}
+QTableView,QTableWidget{{background:#000000;border:2px solid {n['dim']};gridline-color:{n['dim']};selection-background-color:{n['acc']};selection-color:#000000;outline:0}}
+QHeaderView::section{{background:{n['panel']};border:1px solid {n['dim']};padding:3px}}
+QTabWidget::pane{{border:none;border-top:3px solid {n['acc']}}}
+QTabBar::tab{{background:{n['panel']};border:2px outset {n['mid']};padding:3px 8px;margin:0 2px 0 0}}
+QTabBar::tab:selected{{background:{n['acc']};color:#000000;border-style:inset}}
+QCheckBox::indicator{{width:12px;height:12px;border:2px solid {n['mid']};background:#000000}}
+QCheckBox::indicator:checked{{background:{n['acc']}}}
+QSlider::groove:horizontal{{height:6px;background:{n['dim']}}}
+QSlider::handle:horizontal{{background:{n['acc']};width:10px;margin:-6px 0}}
+QScrollBar:vertical{{background:{n['panel']};width:14px}}
+QScrollBar::handle:vertical{{background:{n['mid']};min-height:20px}}
+QScrollBar::add-line,QScrollBar::sub-line{{height:0}}
+QScrollArea{{border:none}}
+QFrame#rule{{background:{n['acc']};max-height:2px;min-height:2px}}
+QFrame#card{{background:{n['acc']};border:3px outset {n['mid']}}}
+QFrame#card QLabel,QFrame#card QCheckBox{{color:#000000;background:transparent}}
+QFrame#card QPushButton{{color:#000000;background:{n['mid']};border:2px outset #ffffff}}
+QFrame#card QPushButton:checked{{background:#000000;color:{n['acc']}}}
+QFrame#card QFrame#rule{{background:#000000}}
+"""
+class PixelEffect(QtWidgets.QGraphicsEffect):
+    """Draws the window at 1/factor resolution and scales it back up unsmoothed: the android joke style."""
+    def __init__(self,factor=2):super().__init__();self.factor=factor
+    def draw(self,painter):
+        try:
+            pixmap=self.sourcePixmap(Qt.LogicalCoordinates,mode=QtWidgets.QGraphicsEffect.NoPad) # PySide returns only the pixmap.
+            if pixmap.isNull():return self.drawSource(painter)
+            small=pixmap.scaled(max(1,pixmap.width()//self.factor),max(1,pixmap.height()//self.factor),Qt.IgnoreAspectRatio,Qt.FastTransformation)
+            painter.save();painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform,False)
+            painter.drawPixmap(QtCore.QRectF(self.sourceBoundingRect(Qt.LogicalCoordinates).topLeft(),pixmap.deviceIndependentSize()),small,QtCore.QRectF(small.rect()));painter.restore()
+        except Exception:self.drawSource(painter) # Never let the joke style break painting.
+
+def pixelate(pixmap,factor=4):
+    """Scale down and back up without smoothing, for the android style."""
+    if pixmap.isNull():return pixmap
+    small=pixmap.scaled(max(1,pixmap.width()//factor),max(1,pixmap.height()//factor),Qt.IgnoreAspectRatio,Qt.FastTransformation)
+    return small.scaled(pixmap.width(),pixmap.height(),Qt.IgnoreAspectRatio,Qt.FastTransformation)
+
 def rule():
     line=QtWidgets.QFrame();line.setObjectName('rule');return line
 def label(text='',name=None):
@@ -115,6 +226,7 @@ class Watermark(QtWidgets.QLabel):
         ratio=self.devicePixelRatioF();source=self.source.scaledToHeight(int(30*ratio),Qt.SmoothTransformation)
         tinted=QtGui.QPixmap(source.size());tinted.fill(Qt.transparent);painter=QtGui.QPainter(tinted)
         painter.drawPixmap(0,0,source);painter.setCompositionMode(QtGui.QPainter.CompositionMode_SourceIn);painter.fillRect(tinted.rect(),QtGui.QColor(color.red(),color.green(),color.blue(),215));painter.end()
+        if self.window.core.theme.get('style')=='android':tinted=pixelate(tinted,5)
         tinted.setDevicePixelRatio(ratio);self.setPixmap(tinted)
     def mousePressEvent(self,event):
         if CHANNEL_URL:QtGui.QDesktopServices.openUrl(QtCore.QUrl(CHANNEL_URL))
@@ -155,8 +267,10 @@ class TrafficLight(QtWidgets.QAbstractButton):
         super().__init__();self.kind=kind;self.group=group;self.setFixedSize(16,16);self.setFocusPolicy(Qt.NoFocus) # Even sizes stay on whole pixels at 125/150/200% scaling.
         self.setToolTip({'close':'Close','minimize':'Minimize','maximize':'Maximize'}[kind])
     def paintEvent(self,event):
-        fill,edge=self.COLORS[self.kind];painter=QtGui.QPainter(self);painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        painter.setPen(QtGui.QPen(QtGui.QColor(edge),0.8));painter.setBrush(QtGui.QColor(edge if self.isDown() else fill));painter.drawEllipse(QtCore.QRectF(2,2,12,12))
+        fill,edge=self.COLORS[self.kind];painter=QtGui.QPainter(self);android=self.window().core.theme.get('style')=='android'
+        if not android:painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.setPen(QtGui.QPen(QtGui.QColor(edge),0.8));painter.setBrush(QtGui.QColor(edge if self.isDown() else fill))
+        painter.drawRect(QtCore.QRect(2,2,11,11)) if android else painter.drawEllipse(QtCore.QRectF(2,2,12,12))
         if self.group.hovered:
             painter.setPen(QtGui.QPen(QtGui.QColor(0,0,0,150),1.3,Qt.SolidLine,Qt.RoundCap));c=8.0
             if self.kind=='close':painter.drawLine(QtCore.QPointF(c-2.6,c-2.6),QtCore.QPointF(c+2.6,c+2.6));painter.drawLine(QtCore.QPointF(c-2.6,c+2.6),QtCore.QPointF(c+2.6,c-2.6))
@@ -192,6 +306,7 @@ class Window(QtWidgets.QMainWindow):
         super().__init__();self.poster=Poster();self.buttons={};self.slots=[];self.glow_targets=[];self.closing=False;self.built=False
         self.setWindowTitle(APP_NAME)
         self.setWindowFlags(Qt.Window|Qt.FramelessWindowHint) # The app draws its own themed top bar.
+        self.setAttribute(Qt.WA_TranslucentBackground) # Lets the glass theme show the system backdrop; terminal paints opaque.
         self.core=Core(self);self.build();self.built=True
         # One fixed size that fits everything (no edge resizing); smaller screens get 92% of the work area. Green maximizes.
         screen=QtGui.QGuiApplication.primaryScreen().availableGeometry()
@@ -231,11 +346,12 @@ class Window(QtWidgets.QMainWindow):
     def build(self):
         central=WindowFrame();self.setCentralWidget(central);central.setFocusPolicy(Qt.StrongFocus);self.setFocusPolicy(Qt.StrongFocus)
         layout=QtWidgets.QVBoxLayout(central);layout.setContentsMargins(16,12,16,10);layout.setSpacing(10)
-        title=self.glow(label(APP_NAME,name='title'))
+        title=self.glow(label(APP_NAME,name='title'));self.title_label=title
         self.bo2_chip=label('BO2 ○ waiting',name='chip');self.import_chip=label('imports ○ off',name='chip')
         self.launch=self.action_button('launch_apply','▶ Launch BO2 && apply',self.core.start);self.stopbutton=self.action_button('stop_restore','■ Stop && restore',self.core.stop)
         self.lights=TrafficLights(self);self.titlebar=TitleBar(self)
-        self.titlebar.setLayout(row(title,label('CoD4 / MW2 / BO2 SP / Zombies → BO2 Redacted',name='muted'),self.bo2_chip,self.import_chip,self.launch,self.stopbutton,self.lights,stretch_at=2))
+        self.subtitle=label('CoD4 / MW2 / BO2 SP / Zombies → BO2 Redacted',name='muted')
+        self.titlebar.setLayout(row(title,self.subtitle,self.bo2_chip,self.import_chip,self.launch,self.stopbutton,self.lights,stretch_at=2))
         self.titlebar.layout().setAlignment(self.lights,Qt.AlignVCenter);layout.addWidget(self.titlebar)
         self.card=QtWidgets.QFrame();self.card.setObjectName('card');self.glow(self.card);card=QtWidgets.QVBoxLayout(self.card);card.setContentsMargins(14,10,14,10);card.setSpacing(6)
         self.follow_label=label();self.detected=label();self.replay_note=label()
@@ -285,7 +401,13 @@ class Window(QtWidgets.QMainWindow):
     def build_settings(self):
         scroll=QtWidgets.QScrollArea();scroll.setWidgetResizable(True);page=QtWidgets.QWidget();scroll.setWidget(page)
         layout=QtWidgets.QVBoxLayout(page);layout.setContentsMargins(0,6,12,0);layout.setSpacing(8)
-        layout.addWidget(label('APPEARANCE › ACCENT COLOR',name='section'))
+        layout.addWidget(label('APPEARANCE',name='section'))
+        self.style_buttons={key:self.plain_button(name,lambda checked=False,key=key:self.core.set_theme(style=key),checkable=True) for key,name in (('terminal','Terminal'),('glass','iOS'),('android','Android'))}
+        self.glass_slider=QtWidgets.QSlider(Qt.Horizontal);self.glass_slider.setRange(0,100);self.glass_slider.setFocusPolicy(Qt.NoFocus);self.glass_slider.setMinimumWidth(220)
+        self.glass_slider.valueChanged.connect(lambda v:(self.core.set_theme(save=False,glass=v),self.save_timer.start(400)));self.glass_value=label('',name='muted')
+        self.glass_label=label('Glass tint',name='muted')
+        layout.addLayout(row(label('Style',name='muted'),*self.style_buttons.values(),self.glass_label,self.glass_slider,self.glass_value,stretch_at=6))
+        layout.addWidget(label('ACCENT COLOR',name='section'))
         grid=QtWidgets.QGridLayout();grid.setHorizontalSpacing(10);self.sliders={};self.slider_values={}
         for i,(key,name,low,high) in enumerate((('h','Hue',0,360),('s','Saturation',0,100),('l','Lightness',20,85))):
             slider=QtWidgets.QSlider(Qt.Horizontal);slider.setRange(low,high);slider.setFocusPolicy(Qt.NoFocus);value=label();value.setMinimumWidth(48)
@@ -294,7 +416,7 @@ class Window(QtWidgets.QMainWindow):
         layout.addLayout(grid)
         presets=[self.plain_button(name,lambda checked=False,v=values:self.core.set_theme(h=v[0],s=v[1],l=v[2])) for name,values in THEME_PRESETS.items()]
         self.glow_box=QtWidgets.QCheckBox('Text glow');self.glow_box.setFocusPolicy(Qt.NoFocus);self.glow_box.toggled.connect(lambda on:self.core.set_theme(glow=on))
-        reset=self.plain_button('Reset',lambda:self.core.set_theme(**DEFAULT_THEME))
+        reset=self.plain_button('Reset',lambda:self.core.set_theme(**{key:DEFAULT_THEME[key] for key in ('h','s','l','glow')}))
         layout.addLayout(row(label('Presets',name='muted'),*presets,self.glow_box,reset,stretch_at=len(presets)+1))
         layout.addWidget(rule());layout.addWidget(label('HOTKEYS',name='section'))
         self.apply_enabled=QtWidgets.QCheckBox('Apply anim hotkey');self.apply_enabled.toggled.connect(lambda on:self.core.set_hotkey_options(replay_enabled=on))
@@ -401,16 +523,44 @@ class Window(QtWidgets.QMainWindow):
         if core.freelook_vk and core.freelook_enabled:hints.append(f'[{core.freelook_name}] Freelook')
         self.hints.setText('   '.join(hints+['[Right-click] Set hotkey']))
     def apply_theme(self):
-        theme=self.core.theme;self.colors=palette(theme);self.setStyleSheet(stylesheet(self.colors));self.watermark.tint(self.colors['acc'])
+        theme=self.core.theme;glass=theme.get('style')=='glass'
+        self.glass_active=self.apply_backdrop(glass) if self.isVisible() else glass
+        android=theme.get('style')=='android';font=QtGui.QFont(self.font());font.setStyleStrategy(QtGui.QFont.PreferDefault);self.setFont(font)
+        self.pixel_effect=PixelEffect(2) if android else None # Held here: PySide would otherwise free it at once.
+        self.centralWidget().setGraphicsEffect(self.pixel_effect)
+        if android:self.colors=android_palette(theme);self.setStyleSheet(android_stylesheet(self.colors));self.watermark.tint(self.colors['acc'])
+        elif glass:
+            if not self.glass_active:theme={**theme,'glass':100} # No system blur (e.g. Windows 10): keep the tint nearly opaque.
+            self.colors=glass_palette(theme);self.setStyleSheet(glass_stylesheet(self.colors));self.watermark.tint(QtGui.QColor(255,255,255))
+            self.colors['acc']=hsl(theme['h'],theme['s'],max(theme['l'],45)) # Used for table text colors below.
+        else:self.colors=palette(theme);self.setStyleSheet(stylesheet(self.colors));self.watermark.tint(self.colors['acc'])
+        self.title_label.setText('BO2SPAnims' if glass else 'bo2spanims.apk' if android else APP_NAME)
+        self.lights.update_lights();self.subtitle.setVisible(not android) # The bigger pixel font needs the room.
+        for key,button in self.style_buttons.items():button.blockSignals(True);button.setChecked(theme.get('style','terminal')==key);button.blockSignals(False)
+        for widget in (self.glass_label,self.glass_slider,self.glass_value):widget.setVisible(glass)
+        self.glass_slider.blockSignals(True);self.glass_slider.setValue(int(self.core.theme.get('glass',45)));self.glass_slider.blockSignals(False);self.glass_value.setText(f"{int(self.core.theme.get('glass',45))}%")
+        self.glow_box.setEnabled(not glass and not android)
         for key,slider in self.sliders.items():
             slider.blockSignals(True);slider.setValue(int(theme[key]));slider.blockSignals(False);self.slider_values[key].setText(f"{int(theme[key])}{'°' if key=='h' else '%'}")
         self.glow_box.blockSignals(True);self.glow_box.setChecked(bool(theme['glow']));self.glow_box.blockSignals(False)
         for widget in self.glow_targets:
-            if theme['glow']:
+            if theme['glow'] and not glass and not android:
                 effect=QtWidgets.QGraphicsDropShadowEffect(widget);effect.setOffset(0,0);effect.setBlurRadius(18);glow=QtGui.QColor(self.colors['acc']);glow.setAlpha(170);effect.setColor(glow);widget.setGraphicsEffect(effect)
             else:widget.setGraphicsEffect(None)
         self.render_snapshot()
 
+    def apply_backdrop(self,glass):
+        """Windows 11 acrylic behind the window for the glass style; returns whether the system blur is active."""
+        if sys.platform!='win32':return False
+        try:
+            dwm=ctypes.windll.dwmapi;hwnd=ctypes.c_void_p(int(self.winId()))
+            class Margins(ctypes.Structure):_fields_=[('left',ctypes.c_int),('right',ctypes.c_int),('top',ctypes.c_int),('bottom',ctypes.c_int)]
+            margins=Margins(-1,-1,-1,-1) if glass else Margins(0,0,0,0);dwm.DwmExtendFrameIntoClientArea(hwnd,ctypes.byref(margins))
+            def attribute(key,value):value=ctypes.c_int(value);return dwm.DwmSetWindowAttribute(hwnd,key,ctypes.byref(value),4)
+            attribute(20,1) # DWMWA_USE_IMMERSIVE_DARK_MODE: dark acrylic.
+            attribute(33,2 if glass else 1) # DWMWA_WINDOW_CORNER_PREFERENCE: round for glass, square for terminal.
+            return attribute(38,3 if glass else 1)==0 and glass # DWMWA_SYSTEMBACKDROP_TYPE: 3 acrylic, 1 none.
+        except (OSError,AttributeError):return False
     def toggle_maximized(self):self.showNormal() if self.isMaximized() else self.showMaximized()
     def showEvent(self,event):
         super().showEvent(event)
@@ -418,6 +568,7 @@ class Window(QtWidgets.QMainWindow):
             self.styled=True;hwnd=int(self.winId());user=ctypes.windll.user32;style=user.GetWindowLongW(hwnd,-16)
             user.SetWindowLongW(hwnd,-16,style|0x00020000|0x00010000|0x00080000) # WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU, no caption.
             self.set_native_icons(hwnd)
+        self.apply_theme() # The backdrop needs the native window, which exists only once shown.
     def set_native_icons(self,hwnd):
         """Put the logo on the window and its window class too; frameless windows can show the class icon on the taskbar."""
         user=ctypes.windll.user32;user.LoadImageW.restype=ctypes.c_void_p;user.LoadImageW.argtypes=[ctypes.c_void_p,ctypes.c_wchar_p,ctypes.c_uint,ctypes.c_int,ctypes.c_int,ctypes.c_uint]

@@ -23,7 +23,7 @@ from freelook import Freelook
 ROOT=Path(sys.executable).resolve().parent if getattr(sys,'frozen',False) else Path(__file__).resolve().parent
 TOOLS=ROOT/'tools';STATE=ROOT/'state';STATE.mkdir(exist_ok=True)
 GAMES=('CoD4','MW2 Actors','BO2 SP','BO2 Zombies')
-DEFAULT_THEME={'h':32,'s':100,'l':52,'glow':True}
+DEFAULT_THEME={'h':32,'s':100,'l':52,'glow':True,'style':'terminal','glass':45} # style: 'terminal', 'glass' (shown as iOS) or 'android' (a deliberately low-quality joke); glass: tint 0-100.
 THEME_PRESETS={'Amber':(32,100,52),'Phosphor':(130,90,50),'Cyan':(190,95,55),'Magenta':(320,85,62),'Mono':(0,0,85)}
 
 class ProcessEntry(ctypes.Structure):

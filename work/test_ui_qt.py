@@ -42,6 +42,11 @@ try:
     assert c.replay_path==c.catalog[lib.model.rows[0]]['path'];result['library_search_and_select']=lib.model.rowCount()
     window.buttons['favorite:CoD4'].click();pump(0.05);assert window.libraries['Favorites'].model.rowCount()==1
     window.libraries['Favorites'].table.selectRow(0);window.buttons['favorite:Favorites'].click();pump(0.05);assert window.libraries['Favorites'].model.rowCount()==0;result['favorite_buttons']=True
+    for style in ('glass','android','terminal'): # Each appearance applies, keeps the fixed size, and saves.
+        window.style_buttons[style].click();pump(0.2)
+        assert c.theme['style']==style and window.style_buttons[style].isChecked() and window.width()<=1240,(style,window.width())
+        assert (window.centralWidget().graphicsEffect() is not None)==(style=='android')
+    assert json.loads((root/'profile.json').read_text())['theme']['style']=='terminal';result['appearance_switching']=['terminal','glass (iOS)','android']
     window.sliders['h'].setValue(32);pump(0.6)
 finally:
     window.close();end=time.monotonic()+10

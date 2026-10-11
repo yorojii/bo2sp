@@ -19,5 +19,10 @@
   "watermark_opens_channel": "https://www.youtube.com/@Yorojiii",
   "library_search_and_select": 9,
   "favorite_buttons": true,
+  "appearance_switching": [
+    "terminal",
+    "glass (iOS)",
+    "android"
+  ],
   "closed_cleanly": true
 }
