@@ -1,0 +1,13 @@
+{
+  "save_keeps_backup_and_no_temp_file": true,
+  "crash_leaves_last_complete_profile": true,
+  "corrupt_profile_loads_backup": [
+    "BO2 Zombies/so_zclassic_zm_buried/ai_zombie_sloth_run",
+    "CoD4/test/first"
+  ],
+  "user_told_about_backup": [
+    "profile.json is unreadable; trying the backup copy.",
+    "profile.json was unreadable; loaded the backup copy profile.json.bak."
+  ],
+  "next_save_repairs_profile": true
+}

@@ -7,7 +7,7 @@ build=workspace/'work/yoroji_live_build/BO2SPAnims'
 assert root.is_dir() and build.is_dir()
 profile=(root/'profile.json').read_bytes()
 recovery=workspace/'work/recovery/BO2SPAnims-before-live-target.exe'
-if not recovery.exists():shutil.copy2(root/'BO2SPAnims.exe',recovery)
+if not recovery.exists() and (root/'BO2SPAnims.exe').exists():shutil.copy2(root/'BO2SPAnims.exe',recovery)
 shutil.copy2(build/'BO2SPAnims.exe',root/'BO2SPAnims.exe')
 for source in (build/'_internal').rglob('*'):
     if not source.is_file():continue

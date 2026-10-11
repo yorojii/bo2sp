@@ -59,7 +59,10 @@ def write_atomic(path,text,backup=False):
     path=Path(path);temp=path.with_name(path.name+'.tmp')
     with open(temp,'w',encoding='utf-8',newline='\n') as handle:handle.write(text);handle.flush();os.fsync(handle.fileno())
     if backup and path.exists():
-        try:json.loads(path.read_text(encoding='utf-8'));os.replace(path,path.with_name(path.name+'.bak')) # Keep the last good copy.
+        try: # Copy (not move) the last good version, so the main file exists at every moment.
+            current=path.read_text(encoding='utf-8');json.loads(current);spare=path.with_name(path.name+'.bak.tmp')
+            with open(spare,'w',encoding='utf-8',newline='\n') as handle:handle.write(current);handle.flush();os.fsync(handle.fileno())
+            os.replace(spare,path.with_name(path.name+'.bak'))
         except (OSError,ValueError):pass
     os.replace(temp,path)
 
