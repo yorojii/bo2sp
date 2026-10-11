@@ -1,0 +1,23 @@
+{
+  "tabs": [
+    "\u2605 Favorites",
+    "CoD4",
+    "MW2 Actors",
+    "BO2 SP",
+    "BO2 Zombies",
+    "Replacements 8",
+    "Debug",
+    "Settings"
+  ],
+  "apply_button_shows_key": "[B] Apply anim",
+  "use_clip_and_lock_have_no_hotkey": true,
+  "lock_checkbox": true,
+  "freelook_toggle_syncs_settings": true,
+  "hotkey_label": "[K] \u25a0 Stop && restore",
+  "hue_slider_recolors_and_saves": true,
+  "glow_toggle": true,
+  "watermark_placeholder": true,
+  "library_search_and_select": 9,
+  "favorite_buttons": true,
+  "closed_cleanly": true
+}

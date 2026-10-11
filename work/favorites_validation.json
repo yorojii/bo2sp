@@ -1,8 +1,9 @@
 {
-  "favorites_tab_first_and_empty": true,
+  "favorites_start_empty": true,
   "star_from_library_tab": "CoD4/common_mp/mp_mantle_over_high",
-  "remove_from_favorites_tab": true,
+  "unstar": true,
   "favorites_game_filter": true,
+  "favorites_search": true,
   "favorite_selects_clip": true,
   "set_saved_by_clip_key": {
     "pb_stand_alert": {
@@ -16,6 +17,7 @@
     }
   },
   "set_loads_back": true,
+  "load_asks_before_replacing": true,
   "favorites_reload": true,
   "sets_reload": true,
   "missing_clip_reported": "Loaded \"Scene one\": 3 replacements, 1 missing clips skipped (CoD4/nowhere/missing_clip).",

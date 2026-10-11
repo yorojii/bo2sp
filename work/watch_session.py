@@ -19,7 +19,7 @@ sys.path.insert(0,str(WORK/'porter'))
 from runtime import Session
 from live_target import LiveTargetReader,AnimationChanging
 from replay_hotkey import KEYS,foreground_pid
-from runtime_app import game_pids
+from core import game_pids
 
 seconds=float(sys.argv[1]) if len(sys.argv)>1 else 1800
 profile_path=Path(sys.argv[2]) if len(sys.argv)>2 else WORK.parent/'outputs/Yoroji Tool/profile.json'

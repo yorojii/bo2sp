@@ -2,15 +2,15 @@
 
 
 a = Analysis(
-    ['porter/runtime_app.py'],
+    ['porter/bo2spanims.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=[('porter/assets/watermark.png','assets')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=['tkinter'],
     noarchive=False,
     optimize=0,
 )

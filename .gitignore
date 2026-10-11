@@ -17,6 +17,7 @@
 
 /work/porter/*
 !/work/porter/*.py
+!/work/porter/assets/
 
 /work/spine_fix/*
 !/work/spine_fix/live_compare.py

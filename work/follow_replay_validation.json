@@ -5,6 +5,7 @@
   "Crouched": "pb_crouch_alert",
   "Prone": "pb_prone_aim",
   "locked_mode_uses_locked_target": true,
+  "lock_checkbox_locks_current_slot": true,
   "selected_source_persisted": true,
   "starts_importer_for_key_action": true,
   "no_match_does_not_apply": true

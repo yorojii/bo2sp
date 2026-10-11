@@ -10,7 +10,7 @@ from pathlib import Path
 WORK=Path(__file__).resolve().parent
 sys.path.insert(0,str(WORK/'porter'))
 from freelook import Freelook,CameraDvars
-from runtime_app import game_pids
+from core import game_pids
 
 seconds=float(sys.argv[1]) if len(sys.argv)>1 else 600
 sensitivity=float(sys.argv[2]) if len(sys.argv)>2 else 0.15

@@ -7,7 +7,7 @@
   "rebound_key_only": true,
   "hooks_closed": true,
   "live_camera_read": {
-    "angle": 0.0,
+    "angle": 354.0,
     "range": 120.0,
     "limits": [
       [
