@@ -9,6 +9,7 @@ from ctypes import wintypes
 from PySide6 import QtCore,QtGui,QtWidgets
 from PySide6.QtCore import Qt
 from core import Core,GAMES,THEME_PRESETS,DEFAULT_THEME,k
+from movement import LIMITS as MOVEMENT_LIMITS
 
 APP_NAME='BO2SPANIMS'
 CHANNEL_URL='https://www.youtube.com/@Yorojiii' # The watermark opens the creator's channel.
@@ -60,6 +61,8 @@ QFrame#card QLabel,QFrame#card QCheckBox{{color:{n['ink']};background:transparen
 QFrame#card QPushButton{{color:{n['ink']};border:1px solid {n['ink']}}}
 QFrame#card QPushButton:checked{{background:{n['ink']};color:{n['acc']}}}
 QFrame#card QFrame#rule{{background:{n['ink']}}}
+QFrame#card QSlider::groove:horizontal{{height:2px;background:{n['ink']}}}
+QFrame#card QSlider::handle:horizontal{{background:{n['ink']};width:12px;margin:-6px 0;border-radius:2px}}
 QFrame#card QCheckBox::indicator{{border-color:{n['ink']}}}
 QFrame#card QCheckBox::indicator:checked{{background:{n['ink']}}}
 QMenu{{background:{n['panel']};border:1px solid {n['dim']}}}
@@ -173,6 +176,8 @@ QFrame#card QLabel,QFrame#card QCheckBox{{color:#000000;background:transparent}}
 QFrame#card QPushButton{{color:#000000;background:{n['mid']};border:2px outset #ffffff}}
 QFrame#card QPushButton:checked{{background:#000000;color:{n['acc']}}}
 QFrame#card QFrame#rule{{background:#000000}}
+QFrame#card QSlider::groove:horizontal{{height:6px;background:#000000}}
+QFrame#card QSlider::handle:horizontal{{background:{n['mid']};border:2px outset #ffffff;width:10px;margin:-6px 0}}
 """
 class PixelEffect(QtWidgets.QGraphicsEffect):
     """Draws the window at 1/factor resolution and scales it back up unsmoothed: the android joke style."""
@@ -426,7 +431,7 @@ class Window(QtWidgets.QMainWindow):
         self.resize(min(1240,int(screen.width()*0.92)),min(860,int(screen.height()*0.92)));self.move(screen.center()-self.rect().center())
         self.save_timer=QtCore.QTimer(self);self.save_timer.setSingleShot(True);self.save_timer.timeout.connect(self.core.save)
         self.timer=QtCore.QTimer(self);self.timer.timeout.connect(self.core.tick);self.timer.start(20)
-        self.apply_theme();self.changed('catalog','mapping','sets','hotkeys','target','targets','snapshot','status','live','busy','replay_note','folders')
+        self.apply_theme();self.changed('catalog','mapping','sets','hotkeys','movement','target','targets','snapshot','status','live','busy','replay_note','folders')
     # ui interface used by core.Core
     def post(self,fn):self.poster.run.emit(fn)
     def append_log(self,text):self.log.appendPlainText(text)
@@ -438,6 +443,11 @@ class Window(QtWidgets.QMainWindow):
     def focus_neutral(self):self.setFocus()
 
     # Widgets
+    def render_movement(self):
+        custom=[key for key in MOVEMENT_LIMITS if self.core.movement[key]!=100]
+        for key,(slider,value) in self.movement_sliders.items():
+            slider.blockSignals(True);slider.setValue(self.core.movement[key]);slider.blockSignals(False);value.setText(f'{self.core.movement[key]}%')
+        self.movement_button.setText('Movement •' if custom else 'Movement') # A dot shows when anything isn't at 100%.
     def plain_button(self,text,callback,checkable=False):
         button=QtWidgets.QPushButton(text);button.setFocusPolicy(Qt.NoFocus);button.setCheckable(checkable);button.clicked.connect(callback);return button
     def action_button(self,action,text,callback):
@@ -476,7 +486,19 @@ class Window(QtWidgets.QMainWindow):
         self.freelook_button=self.plain_button('',lambda checked:self.core.set_hotkey_options(freelook_enabled=checked),checkable=True)
         self.freelook_button.setContextMenuPolicy(Qt.CustomContextMenu);self.freelook_button.customContextMenuRequested.connect(lambda pos:self.hotkey_menu(self.freelook_button,'freelook'))
         self.freelook_button.setToolTip('Hold the key in BO2 to orbit the third-person camera. Click to turn on or off; right-click to change the key.')
-        card.addLayout(row(self.apply_button,self.lock,self.freelook_button,stretch_at=3,spacing=10));layout.addWidget(self.card)
+        self.movement_button=self.plain_button('Movement',lambda checked:self.movement_panel.setVisible(checked),checkable=True)
+        self.movement_button.setToolTip('Run speed, sprint speed and jump height in matches you host. Not timescale: animations play at normal speed.')
+        card.addLayout(row(self.apply_button,self.lock,self.freelook_button,self.movement_button,stretch_at=4,spacing=10))
+        self.movement_panel=QtWidgets.QWidget();panel=QtWidgets.QHBoxLayout(self.movement_panel);panel.setContentsMargins(0,4,0,0);panel.setSpacing(10)
+        self.movement_sliders={}
+        for key,name in (('speed','Speed'),('sprint','Sprint'),('jump','Jump')):
+            low,high=MOVEMENT_LIMITS[key];slider=QtWidgets.QSlider(Qt.Horizontal);slider.setRange(low,high);slider.setSingleStep(5);slider.setPageStep(25)
+            slider.setFocusPolicy(Qt.NoFocus);slider.setMinimumWidth(170);value=label();value.setMinimumWidth(44)
+            slider.valueChanged.connect(lambda v,key=key:(self.core.set_movement(save=False,**{key:v}),self.save_timer.start(400)))
+            slider.setToolTip({'speed':'Walk and run speed (g_speed).','sprint':'Sprint speed on top of run speed.','jump':'Jump height.'}[key]+' 100% is the game default.')
+            self.movement_sliders[key]=(slider,value);panel.addWidget(label(name));panel.addWidget(slider);panel.addWidget(value)
+        panel.addWidget(self.plain_button('Reset',self.core.reset_movement));panel.addStretch(1)
+        self.movement_panel.hide();card.addWidget(self.movement_panel);layout.addWidget(self.card)
         self.tabs=QtWidgets.QTabWidget();self.tabs.setDocumentMode(True);layout.addWidget(self.tabs,1)
         self.libraries={}
         for game in ('Favorites',*GAMES):
@@ -622,6 +644,7 @@ class Window(QtWidgets.QMainWindow):
             elif field=='sets':
                 current=self.set_box.currentText();self.set_box.clear();self.set_box.addItems(sorted(core.saved_sets));self.set_box.setCurrentText(current if current in core.saved_sets else '')
             elif field=='hotkeys':self.render_hotkeys()
+            elif field=='movement':self.render_movement()
             elif field in ('target','targets'):self.render_slots();self.render_card()
             elif field=='replay_note':self.replay_note.setText(core.replay_note)
             elif field=='snapshot':self.render_snapshot()

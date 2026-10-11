@@ -7,7 +7,10 @@ the core asks of a front end; pump() runs callbacks posted from worker threads.
 import json,sys,time
 from pathlib import Path
 sys.path.insert(0,'work/porter')
-import core
+import core,movement
+
+# Tests may see the user's running BO2 through the observer; never let the movement sliders write to it.
+movement.Movement.update=lambda self,pid,percent:None
 
 FINAL=Path('outputs/BO2SPAnims').resolve()
 

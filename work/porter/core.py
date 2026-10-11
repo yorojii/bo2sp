@@ -19,6 +19,7 @@ from camera import install_camera
 from live_target import LiveTargetReader,AnimationChanging
 from replay_hotkey import HotkeyListener,KEYS,GAME_KEYS,key_name
 from freelook import Freelook
+from movement import Movement,LIMITS as MOVEMENT_LIMITS,clamp_percent
 
 ROOT=Path(sys.executable).resolve().parent if getattr(sys,'frozen',False) else Path(__file__).resolve().parent
 TOOLS=ROOT/'tools';STATE=ROOT/'state';STATE.mkdir(exist_ok=True)
@@ -211,11 +212,12 @@ class Core:
         look=profile.get('freelook',{});self.freelook_vk=int(look.get('vk',0x12) or 0) # Default: either Alt key.
         self.freelook_name=(look.get('key') if 'vk' in look else key_name(self.freelook_vk)) if self.freelook_vk else 'None'
         self.freelook_enabled=bool(look.get('enabled',True));self.freelook_speed=self.clamp_speed(look.get('speed',0.15))
+        moves=profile.get('movement',{});self.movement={key:clamp_percent(key,moves.get(key,100)) for key in MOVEMENT_LIMITS} # Percent of BO2's defaults.
         theme=profile.get('theme',{});self.theme={**DEFAULT_THEME,**{key:theme[key] for key in DEFAULT_THEME if key in theme}}
         self.replay_note='';self.replay_error_shown=False
         self.read_library();self.update_target_note()
         self.observer=threading.Thread(target=self.observe_game,name='Live target observer');self.observer.start()
-        self.hotkey=HotkeyListener();self.freelook=Freelook()
+        self.hotkey=HotkeyListener();self.freelook=Freelook();self.mover=Movement()
         if folders_found:self.save()
 
     # Plumbing
@@ -246,7 +248,7 @@ class Core:
         write_atomic(ROOT/'profile.json',json.dumps({'cod4':self.cod4,'bo2':self.bo2,'mw2':self.mw2,'mapping':mapping,'targets':self.targets,
             'replay':{'key':self.apply_name,'vk':self.apply_vk,'enabled':self.replay_enabled,'target':self.replay_target,'source':replay_source},
             'hotkeys':self.hotkeys,'favorites':sorted(self.favorites),'saved_sets':self.saved_sets,
-            'freelook':{'key':self.freelook_name,'vk':self.freelook_vk,'enabled':self.freelook_enabled,'speed':self.freelook_speed},'theme':self.theme},indent=2),backup=True)
+            'freelook':{'key':self.freelook_name,'vk':self.freelook_vk,'enabled':self.freelook_enabled,'speed':self.freelook_speed},'movement':self.movement,'theme':self.theme},indent=2),backup=True)
     def set_folders(self,cod4,mw2,bo2):self.cod4,self.mw2,self.bo2=cod4,mw2,bo2;self.save();self.ui.changed('folders')
     def set_theme(self,save=True,**values):
         self.theme={**self.theme,**values};self.ui.changed('theme')
@@ -472,6 +474,14 @@ class Core:
         if 'freelook_enabled' in values:self.freelook_enabled=bool(values['freelook_enabled'])
         if 'freelook_speed' in values:self.freelook_speed=self.clamp_speed(values['freelook_speed'])
         self.save();self.ui.changed('hotkeys')
+    def set_movement(self,save=True,**values):
+        """Movement sliders, as percent of BO2's defaults (speed, sprint, jump). Applied by tick() to the attached game."""
+        for key,value in values.items():
+            if key in MOVEMENT_LIMITS:self.movement[key]=clamp_percent(key,value)
+        self.mover.checked=0.0
+        if save:self.save()
+        self.ui.changed('movement')
+    def reset_movement(self):self.set_movement(**{key:100 for key in MOVEMENT_LIMITS})
     def run_action(self,action):
         if action=='apply_anim':
             if self.replay_enabled:self.request_replay()
@@ -485,6 +495,8 @@ class Core:
         self.hotkey.configure(self.bindings(active=True),pid)
         self.freelook.degrees_per_pixel=self.freelook_speed;self.freelook.configure(self.freelook_vk,pid,self.freelook_enabled and bool(self.freelook_vk))
         if self.freelook.error:self.ui.append_log('Freelook: '+self.freelook.error);self.freelook.error=None
+        self.mover.update(pid,self.movement)
+        if self.mover.error:self.ui.append_log('Movement: '+self.mover.error);self.mover.error=None
         if self.hotkey.error and not self.replay_error_shown:
             self.ui.append_log('Hotkeys unavailable: '+self.hotkey.error+'. The buttons still work.');self.replay_error_shown=True
         while True:
@@ -681,5 +693,5 @@ class Core:
     def stop(self):self.stop_event.set();self.worker_wake.set();self.set_status('Stopping and restoring the current session…')
 
     # Shutdown: stop every thread; the UI closes once finished() is True.
-    def close(self):self.stop_event.set();self.worker_wake.set();self.observe_stop.set();self.hotkey.stop();self.freelook.stop();self.closing=True
+    def close(self):self.stop_event.set();self.worker_wake.set();self.observe_stop.set();self.hotkey.stop();self.freelook.stop();self.mover.restore(quiet=True);self.closing=True
     def finished(self):return self.idle() and not self.observer.is_alive() and not self.hotkey.is_alive() and not self.freelook.is_alive()
