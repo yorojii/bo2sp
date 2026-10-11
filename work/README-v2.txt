@@ -15,6 +15,20 @@ The window
 Settings has the accent color (hue, saturation, lightness, presets and
 text glow), hotkeys, game folders and the library / camera tools.
 
+Appearance (Settings): Terminal (the default retro look), iOS (frosted
+liquid glass with real blur when Windows Settings > Personalization >
+Colors > Transparency effects is on; a solid frosted tint otherwise) and
+Android (a deliberately low-quality, pixelated joke - everything still
+works). The accent color applies to Terminal and iOS.
+
+Sharing presets: in Replacements, "Copy share code" copies the saved set
+picked in the list (or your current replacements) as a short text code
+starting with BO2SP1-. Send it in any chat. The other person copies it
+and clicks "Paste share code"; it is saved as a set they can load. Clips
+missing from their library are named. Imported files can't be shared.
+Settings > Appearance has "Copy appearance code" for your look; "Paste
+share code" applies either kind.
+
 Third-person camera
 In Settings, click "Install third person plugin" once, then start a new
 custom match. The camera switches to third person two seconds after the

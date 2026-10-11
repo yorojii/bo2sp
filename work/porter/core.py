@@ -12,7 +12,7 @@ No GUI toolkit here. A front end passes a `ui` object providing:
 Core methods are called on the UI thread; worker threads only reach the UI through post().
 """
 from pathlib import Path
-import csv,ctypes,hashlib,json,os,queue,re,subprocess,sys,threading,time
+import base64,csv,ctypes,hashlib,json,os,queue,re,subprocess,sys,threading,time,zlib
 from ctypes import wintypes
 from runtime import Session,decode,load_clip,body_clip,k
 from camera import install_camera
@@ -168,6 +168,21 @@ def scan(cod4,bo2,log=print):
     log(f'Ready: {len(mapping)} basic animations, including {sum("death" in n for n in mapping)} deaths.')
     return mapping,sorted(set(targets))
 
+SHARE_PREFIX='BO2SP1-'
+def encode_share(data):
+    """Compact copy-paste text for a preset: prefix + URL-safe base64 of zlib-compressed JSON."""
+    raw=zlib.compress(json.dumps(data,separators=(',',':')).encode(),9)
+    return SHARE_PREFIX+base64.urlsafe_b64encode(raw).decode().rstrip('=')
+def decode_share(text):
+    """The preset dict from a share code (surrounding text and line breaks are ignored), or ValueError."""
+    match=re.search(re.escape(SHARE_PREFIX)+r'([A-Za-z0-9_\-\s]+)',text or '')
+    if not match:raise ValueError("That isn't a BO2SPAnims share code.")
+    body=re.sub(r'\s','',match.group(1))
+    try:data=json.loads(zlib.decompress(base64.urlsafe_b64decode(body+'='*(-len(body)%4))))
+    except Exception:raise ValueError('That share code is incomplete or damaged. Copy the whole code and try again.')
+    if not isinstance(data,dict) or data.get('kind') not in ('set','theme'):raise ValueError('That share code is from an unsupported version.')
+    return data
+
 class Core:
     def __init__(self,ui):
         self.ui=ui;self.mapping={};self.targets=[];self.catalog=[];self.session=None;self.stop_event=threading.Event();self.worker=None;self.indexthread=None;self.lock=threading.Lock();self.closing=False
@@ -302,6 +317,32 @@ class Core:
         self.mapping=mapping;self.worker_wake.set();self.refresh();self.save()
         self.set_status(f'Loaded "{name}": {len(mapping)} replacements'+(f', {len(missing)} missing clips skipped ({", ".join(missing[:3])})' if missing else '')+'.')
         if mapping and self.last_snapshot.get('ready') and self.idle():self.start()
+    # Share codes: presets as copy-paste text.
+    def share_set_code(self,name=''):
+        """Code for a saved set (or the current replacements when name is empty). Only library clips are portable."""
+        entries=self.saved_sets[name] if name in self.saved_sets else self.set_entries()
+        clips={target:entry['clip'] for target,entry in entries.items() if 'clip' in entry};local=len(entries)-len(clips)
+        if not clips:self.set_status("Nothing to share: choose library clips first (imported files can't be shared).");return None
+        code=encode_share({'kind':'set','name':name or 'Shared replacements','clips':clips})
+        self.set_status(f'Share code copied: {len(clips)} replacements'+(f' ({local} imported files left out; only library clips can be shared)' if local else '')+'.');return code
+    def share_theme_code(self):
+        code=encode_share({'kind':'theme','theme':{key:self.theme[key] for key in DEFAULT_THEME}});self.set_status('Appearance code copied.');return code
+    def import_share_code(self,text):
+        """Apply a pasted code: a set is saved under a name you choose; an appearance is applied. Returns (kind, name) or None."""
+        try:data=decode_share(text)
+        except ValueError as e:self.set_status(str(e));return None
+        if data['kind']=='theme':
+            theme={key:value for key,value in data.get('theme',{}).items() if key in DEFAULT_THEME}
+            if not theme:self.set_status('That appearance code is empty.');return None
+            self.set_theme(**theme);self.set_status('Appearance applied from share code.');return ('theme','')
+        clips={target:key for target,key in data.get('clips',{}).items() if isinstance(target,str) and isinstance(key,str)}
+        name=(self.ui.ask_text('Save shared set','Name for this set of replacements:',data.get('name','Shared replacements')) or '').strip()
+        if not name:return None
+        if name in self.saved_sets and not self.ui.confirm('Replace set',f'Replace the saved set "{name}"?'):return None
+        known={self.clip_key(x) for x in self.catalog};missing=[key for key in clips.values() if key not in known]
+        self.saved_sets[name]={target:{'clip':key} for target,key in clips.items()};self.save();self.ui.changed('sets')
+        self.set_status(f'Saved "{name}": {len(clips)} replacements'+(f', {len(missing)} not in your library ({", ".join(missing[:3])})' if missing else '')+'. Pick it and Load set to use it.')
+        return ('set',name)
     def delete_set(self,name):
         if name not in self.saved_sets:self.set_status('Choose a saved set to delete.');return
         if not self.ui.confirm('Delete set',f'Delete the saved set "{name}"? Your current replacements are not changed.'):return

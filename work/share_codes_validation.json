@@ -1,0 +1,13 @@
+{
+  "set_code_chars": 191,
+  "local_files_left_out": "Share code copied: 2 replacements (1 imported files left out; only library clips can be shared).",
+  "cancel_name_dialog_saves_nothing": true,
+  "set_round_trips_by_clip_key": {
+    "pb_stand_alert": "BO2 SP/common/ai_balcony_death_01",
+    "pb_crouch_alert": "BO2 Zombies/common_zm/mp_mantle_over_high"
+  },
+  "shared_set_loads": true,
+  "missing_clips_reported": "Saved \"Foreign\": 1 replacements, 1 not in your library (MW3/common/not_here). Pick it and Load set to use it.",
+  "appearance_code_applies": true,
+  "bad_codes_rejected": "That share code is incomplete or damaged. Copy the whole code and try again."
+}

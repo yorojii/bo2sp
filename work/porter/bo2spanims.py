@@ -73,7 +73,7 @@ def glass_palette(theme):
     h,s,l=theme['h'],theme['s'],theme['l'];tint=theme.get('glass',45)/100
     return {'acc':hsl(h,s,max(l,45)),'accsoft':hsl(h,s,max(l,45),110),'text':QtGui.QColor(255,255,255),'mid':QtGui.QColor(255,255,255,165),
             'dim':QtGui.QColor(255,255,255,46),'panel':QtGui.QColor(255,255,255,20),'panel2':QtGui.QColor(255,255,255,34),'sel':QtGui.QColor(255,255,255,40),
-            'bg':hsl(h,s*0.3,7,int(70+150*tint)),'solid':hsl(h,s*0.25,11),'ink':QtGui.QColor(255,255,255)}
+            'bg':hsl(h,s*0.3,7,min(255,int(70+150*tint))),'solid':hsl(h,s*0.25,11),'ink':QtGui.QColor(255,255,255)}
 def rgba(color):return f'rgba({color.red()},{color.green()},{color.blue()},{color.alpha()})'
 def glass_stylesheet(c):
     n={key:rgba(value) for key,value in c.items()}
@@ -177,6 +177,13 @@ def pixelate(pixmap,factor=4):
     if pixmap.isNull():return pixmap
     small=pixmap.scaled(max(1,pixmap.width()//factor),max(1,pixmap.height()//factor),Qt.IgnoreAspectRatio,Qt.FastTransformation)
     return small.scaled(pixmap.width(),pixmap.height(),Qt.IgnoreAspectRatio,Qt.FastTransformation)
+
+def transparency_enabled():
+    """Windows Settings > Personalization > Colors > Transparency effects."""
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER,r'Software\Microsoft\Windows\CurrentVersion\Themes\Personalize') as key:return bool(winreg.QueryValueEx(key,'EnableTransparency')[0])
+    except (OSError,ImportError):return True
 
 def rule():
     line=QtWidgets.QFrame();line.setObjectName('rule');return line
@@ -386,7 +393,10 @@ class Window(QtWidgets.QMainWindow):
         load=self.action_button('load_set','Load set',lambda:self.core.load_set(self.set_box.currentText()))
         delete=self.action_button('delete_set','Delete set',lambda:self.core.delete_set(self.set_box.currentText()))
         separator=QtWidgets.QFrame();separator.setObjectName('rule');separator.setFixedWidth(1);separator.setMinimumHeight(24);separator.setMaximumHeight(9999)
-        layout.addLayout(row(remove,clear,separator,save,self.set_box,load,delete,stretch_at=7));return page
+        layout.addLayout(row(remove,clear,separator,save,self.set_box,load,delete,stretch_at=7))
+        share=self.action_button('share_set','Copy share code',lambda:self.copy_code(self.core.share_set_code(self.set_box.currentText())))
+        paste=self.action_button('paste_code','Paste share code',self.paste_code)
+        layout.addLayout(row(share,paste,label('Shares the set picked above, or your current replacements. Paste a code from a friend to save it as a set.',name='muted'),stretch_at=3));return page
     def build_debug(self):
         page=QtWidgets.QWidget();layout=QtWidgets.QVBoxLayout(page);layout.setContentsMargins(0,6,0,0)
         self.live_label=label();layout.addWidget(label('Animation layers contributing to your character right now.',name='muted'))
@@ -406,7 +416,10 @@ class Window(QtWidgets.QMainWindow):
         self.glass_slider=QtWidgets.QSlider(Qt.Horizontal);self.glass_slider.setRange(0,100);self.glass_slider.setFocusPolicy(Qt.NoFocus);self.glass_slider.setMinimumWidth(220)
         self.glass_slider.valueChanged.connect(lambda v:(self.core.set_theme(save=False,glass=v),self.save_timer.start(400)));self.glass_value=label('',name='muted')
         self.glass_label=label('Glass tint',name='muted')
+        self.glass_hint=label('Turn on Windows Settings › Personalization › Colors › Transparency effects for the real blur (now using a solid frosted tint).',name='muted');self.glass_hint.setWordWrap(True)
         layout.addLayout(row(label('Style',name='muted'),*self.style_buttons.values(),self.glass_label,self.glass_slider,self.glass_value,stretch_at=6))
+        layout.addWidget(self.glass_hint)
+        layout.addLayout(row(self.plain_button('Copy appearance code',lambda:self.copy_code(self.core.share_theme_code())),self.plain_button('Paste share code',self.paste_code),label('Style, accent, glow and glass tint as text you can send.',name='muted'),stretch_at=3))
         layout.addWidget(label('ACCENT COLOR',name='section'))
         grid=QtWidgets.QGridLayout();grid.setHorizontalSpacing(10);self.sliders={};self.slider_values={}
         for i,(key,name,low,high) in enumerate((('h','Hue',0,360),('s','Saturation',0,100),('l','Lightness',20,85))):
@@ -452,6 +465,13 @@ class Window(QtWidgets.QMainWindow):
         if path:edit.setText(str(Path(path)))
     def detect_folders(self):
         found=self.core.detect_folders();self.core.set_status('Game folders: '+', '.join(f"{name} {'found' if found[key] else 'not found'}" for key,name in (('bo2','BO2'),('cod4','CoD4'),('mw2','MW2'))))
+    def copy_code(self,code):
+        if code:QtWidgets.QApplication.clipboard().setText(code)
+    def paste_code(self):
+        text=QtWidgets.QApplication.clipboard().text()
+        if not text.strip():self.core.set_status('Copy a BO2SPAnims share code first, then click Paste share code.');return
+        result=self.core.import_share_code(text)
+        if result and result[0]=='set':self.set_box.setCurrentText(result[1])
     def save_folders(self):self.core.set_folders(self.folder_edits['cod4'].text(),self.folder_edits['mw2'].text(),self.folder_edits['bo2'].text());self.core.set_status('Game folders saved.')
 
     # Refresh from core
@@ -530,14 +550,15 @@ class Window(QtWidgets.QMainWindow):
         self.centralWidget().setGraphicsEffect(self.pixel_effect)
         if android:self.colors=android_palette(theme);self.setStyleSheet(android_stylesheet(self.colors));self.watermark.tint(self.colors['acc'])
         elif glass:
-            if not self.glass_active:theme={**theme,'glass':100} # No system blur (e.g. Windows 10): keep the tint nearly opaque.
+            if not self.glass_active:theme={**theme,'glass':200} # No system blur: an opaque frosted tint, nothing sharp bleeding through.
             self.colors=glass_palette(theme);self.setStyleSheet(glass_stylesheet(self.colors));self.watermark.tint(QtGui.QColor(255,255,255))
             self.colors['acc']=hsl(theme['h'],theme['s'],max(theme['l'],45)) # Used for table text colors below.
         else:self.colors=palette(theme);self.setStyleSheet(stylesheet(self.colors));self.watermark.tint(self.colors['acc'])
         self.title_label.setText('BO2SPAnims' if glass else 'bo2spanims.apk' if android else APP_NAME)
         self.lights.update_lights();self.subtitle.setVisible(not android) # The bigger pixel font needs the room.
         for key,button in self.style_buttons.items():button.blockSignals(True);button.setChecked(theme.get('style','terminal')==key);button.blockSignals(False)
-        for widget in (self.glass_label,self.glass_slider,self.glass_value):widget.setVisible(glass)
+        for widget in (self.glass_label,self.glass_slider,self.glass_value):widget.setVisible(glass and self.glass_active)
+        self.glass_hint.setVisible(glass and not self.glass_active and self.isVisible())
         self.glass_slider.blockSignals(True);self.glass_slider.setValue(int(self.core.theme.get('glass',45)));self.glass_slider.blockSignals(False);self.glass_value.setText(f"{int(self.core.theme.get('glass',45))}%")
         self.glow_box.setEnabled(not glass and not android)
         for key,slider in self.sliders.items():
@@ -550,16 +571,20 @@ class Window(QtWidgets.QMainWindow):
         self.render_snapshot()
 
     def apply_backdrop(self,glass):
-        """Windows 11 acrylic behind the window for the glass style; returns whether the system blur is active."""
+        """Windows acrylic blur behind the (layered, translucent) window for the iOS style; returns whether it's on.
+        Qt makes translucent frameless windows layered, which the documented DWM system backdrop ignores, so this
+        uses the window-composition accent (ACCENT_ENABLE_ACRYLICBLURBEHIND) that does work on layered windows."""
         if sys.platform!='win32':return False
+        glass=glass and transparency_enabled() # With Windows transparency effects off, acrylic is drawn solid.
         try:
-            dwm=ctypes.windll.dwmapi;hwnd=ctypes.c_void_p(int(self.winId()))
-            class Margins(ctypes.Structure):_fields_=[('left',ctypes.c_int),('right',ctypes.c_int),('top',ctypes.c_int),('bottom',ctypes.c_int)]
-            margins=Margins(-1,-1,-1,-1) if glass else Margins(0,0,0,0);dwm.DwmExtendFrameIntoClientArea(hwnd,ctypes.byref(margins))
-            def attribute(key,value):value=ctypes.c_int(value);return dwm.DwmSetWindowAttribute(hwnd,key,ctypes.byref(value),4)
-            attribute(20,1) # DWMWA_USE_IMMERSIVE_DARK_MODE: dark acrylic.
-            attribute(33,2 if glass else 1) # DWMWA_WINDOW_CORNER_PREFERENCE: round for glass, square for terminal.
-            return attribute(38,3 if glass else 1)==0 and glass # DWMWA_SYSTEMBACKDROP_TYPE: 3 acrylic, 1 none.
+            hwnd=ctypes.c_void_p(int(self.winId()))
+            class Accent(ctypes.Structure):_fields_=[('state',ctypes.c_int),('flags',ctypes.c_int),('color',ctypes.c_uint),('animation',ctypes.c_int)]
+            class Data(ctypes.Structure):_fields_=[('attribute',ctypes.c_int),('data',ctypes.c_void_p),('size',ctypes.c_size_t)]
+            accent=Accent(4 if glass else 0,2,0x01101010,0) # 4 = acrylic blur behind; colour is ABGR with a near-zero alpha tint.
+            data=Data(19,ctypes.cast(ctypes.byref(accent),ctypes.c_void_p),ctypes.sizeof(accent)) # 19 = WCA_ACCENT_POLICY
+            ok=bool(ctypes.windll.user32.SetWindowCompositionAttribute(hwnd,ctypes.byref(data)))
+            corner=ctypes.c_int(2 if glass else 1);ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd,33,ctypes.byref(corner),4) # Rounded corners for glass.
+            return ok and glass
         except (OSError,AttributeError):return False
     def toggle_maximized(self):self.showNormal() if self.isMaximized() else self.showMaximized()
     def showEvent(self,event):

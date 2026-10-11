@@ -47,6 +47,10 @@ try:
         assert c.theme['style']==style and window.style_buttons[style].isChecked() and window.width()<=1240,(style,window.width())
         assert (window.centralWidget().graphicsEffect() is not None)==(style=='android')
     assert json.loads((root/'profile.json').read_text())['theme']['style']=='terminal';result['appearance_switching']=['terminal','glass (iOS)','android']
+    app.clipboard().setText('');window.buttons['share_set'].click();pump(0.05);code=app.clipboard().text()
+    assert code.startswith('BO2SP1-'),(code,c.status);c.text_answer=None
+    window.ask_text=lambda title,prompt,initial:'Pasted set';window.buttons['paste_code'].click();pump(0.05)
+    assert 'Pasted set' in c.saved_sets and window.set_box.currentText()=='Pasted set',c.status;result['share_code_buttons']=len(code)
     window.sliders['h'].setValue(32);pump(0.6)
 finally:
     window.close();end=time.monotonic()+10
