@@ -3,6 +3,7 @@
 # user's profile stay out of git (size, game-asset rights, private state).
 /*
 !/.gitignore
+!/README.md
 !/work/
 
 /work/*
