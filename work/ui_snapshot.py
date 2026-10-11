@@ -20,7 +20,7 @@ for item in catalog:item['path']=str(final/item['path'])
 (root/'library/catalog.json').write_text(json.dumps(catalog));core.ROOT=root;core.STATE=root/'state'
 core.Core.start=lambda self:self.set_status('(importer disabled in snapshot mode)')
 import bo2spanims
-app=QtWidgets.QApplication(sys.argv);window=bo2spanims.Window();window.resize(1180,900);window.show()
+app=QtWidgets.QApplication(sys.argv);window=bo2spanims.Window();window.resize(1240,860);window.show()
 end=time.monotonic()+2.5
 while time.monotonic()<end:app.processEvents();time.sleep(0.02)
 for i in range(window.tabs.count()):

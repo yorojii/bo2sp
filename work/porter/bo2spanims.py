@@ -52,6 +52,7 @@ QScrollBar:vertical{{background:{n['bg']};width:10px;margin:0}}
 QScrollBar::handle:vertical{{background:{n['dim']};min-height:24px;border-radius:3px}}
 QScrollBar::add-line,QScrollBar::sub-line{{height:0}}
 QScrollArea{{border:none}}
+QFrame#window{{border:1px solid {n['dim']}}}
 QFrame#rule{{background:{n['dim']};max-height:1px;min-height:1px}}
 QFrame#card{{background:{n['acc']};border-radius:4px}}
 QFrame#card QLabel,QFrame#card QCheckBox{{color:{n['ink']};background:transparent}}
@@ -147,11 +148,54 @@ class LibraryTab(QtWidgets.QWidget):
         rows=self.core.clips(self.game,self.query.text(),self.zone.currentText() or 'All');self.model.set_rows(rows)
         self.count.setText(f'{len(rows):,} favorite clips • ★ Favorite in any library tab adds a clip here' if self.game=='Favorites' else f'{len(rows):,} character clips • choose a looping slot for movement or a death slot for a death clip')
 
+class TrafficLight(QtWidgets.QAbstractButton):
+    """macOS-style window button: a colored dot that shows its glyph while the group is hovered."""
+    COLORS={'close':('#FF5F57','#E0443E'),'minimize':('#FEBC2E','#DEA123'),'maximize':('#28C840','#1AAB29')}
+    def __init__(self,kind,group):
+        super().__init__();self.kind=kind;self.group=group;self.setFixedSize(14,14);self.setFocusPolicy(Qt.NoFocus)
+        self.setToolTip({'close':'Close','minimize':'Minimize','maximize':'Maximize'}[kind])
+    def paintEvent(self,event):
+        fill,edge=self.COLORS[self.kind];painter=QtGui.QPainter(self);painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.setPen(QtGui.QPen(QtGui.QColor(edge),0.8));painter.setBrush(QtGui.QColor(edge if self.isDown() else fill));painter.drawEllipse(QtCore.QRectF(1,1,12,12))
+        if self.group.hovered:
+            painter.setPen(QtGui.QPen(QtGui.QColor(0,0,0,150),1.3,Qt.SolidLine,Qt.RoundCap));c=7.0
+            if self.kind=='close':painter.drawLine(QtCore.QPointF(c-2.6,c-2.6),QtCore.QPointF(c+2.6,c+2.6));painter.drawLine(QtCore.QPointF(c-2.6,c+2.6),QtCore.QPointF(c+2.6,c-2.6))
+            elif self.kind=='minimize':painter.drawLine(QtCore.QPointF(c-3,c),QtCore.QPointF(c+3,c))
+            else:painter.drawLine(QtCore.QPointF(c-3,c),QtCore.QPointF(c+3,c));painter.drawLine(QtCore.QPointF(c,c-3),QtCore.QPointF(c,c+3))
+        painter.end()
+
+class TrafficLights(QtWidgets.QWidget):
+    def __init__(self,window):
+        super().__init__();self.hovered=False;self.setStyleSheet('background:transparent')
+        box=QtWidgets.QHBoxLayout(self);box.setContentsMargins(0,0,6,0);box.setSpacing(8);self.lights={}
+        for kind,action in (('close',window.close),('minimize',window.showMinimized),('maximize',window.toggle_maximized)):
+            light=TrafficLight(kind,self);light.clicked.connect(action);box.addWidget(light);self.lights[kind]=light
+    def enterEvent(self,event):self.hovered=True;self.update_lights()
+    def leaveEvent(self,event):self.hovered=False;self.update_lights()
+    def update_lights(self):
+        for light in self.lights.values():light.update()
+
+class TitleBar(QtWidgets.QWidget):
+    """The app's own top bar replacing the Windows title bar: drag to move, double-click to maximize."""
+    def __init__(self,window):super().__init__();self.window_=window;self.setStyleSheet('background:transparent')
+    def mousePressEvent(self,event):
+        if event.button()==Qt.LeftButton and self.window_.windowHandle():self.window_.windowHandle().startSystemMove()
+    def mouseDoubleClickEvent(self,event):
+        if event.button()==Qt.LeftButton:self.window_.toggle_maximized()
+
+class WindowFrame(QtWidgets.QFrame):
+    """Body of the frameless window; draws the 1px themed window border."""
+    def __init__(self):super().__init__();self.setObjectName('window')
+
 class Window(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__();self.poster=Poster();self.buttons={};self.slots=[];self.glow_targets=[];self.closing=False;self.built=False
-        self.setWindowTitle(APP_NAME);self.resize(1180,900);self.setMinimumSize(980,760)
+        self.setWindowTitle(APP_NAME)
+        self.setWindowFlags(Qt.Window|Qt.FramelessWindowHint) # The app draws its own themed top bar.
         self.core=Core(self);self.build();self.built=True
+        # One fixed size that fits everything (no edge resizing); smaller screens get 92% of the work area. Green maximizes.
+        screen=QtGui.QGuiApplication.primaryScreen().availableGeometry()
+        self.resize(min(1240,int(screen.width()*0.92)),min(860,int(screen.height()*0.92)));self.move(screen.center()-self.rect().center())
         self.save_timer=QtCore.QTimer(self);self.save_timer.setSingleShot(True);self.save_timer.timeout.connect(self.core.save)
         self.timer=QtCore.QTimer(self);self.timer.timeout.connect(self.core.tick);self.timer.start(20)
         self.apply_theme();self.changed('catalog','mapping','sets','hotkeys','target','targets','snapshot','status','live','busy','replay_note','folders')
@@ -185,12 +229,14 @@ class Window(QtWidgets.QMainWindow):
     def glow(self,widget):self.glow_targets.append(widget);return widget
 
     def build(self):
-        central=QtWidgets.QWidget();self.setCentralWidget(central);central.setFocusPolicy(Qt.StrongFocus);self.setFocusPolicy(Qt.StrongFocus)
+        central=WindowFrame();self.setCentralWidget(central);central.setFocusPolicy(Qt.StrongFocus);self.setFocusPolicy(Qt.StrongFocus)
         layout=QtWidgets.QVBoxLayout(central);layout.setContentsMargins(16,12,16,10);layout.setSpacing(10)
         title=self.glow(label(APP_NAME,name='title'))
         self.bo2_chip=label('BO2 ○ waiting',name='chip');self.import_chip=label('imports ○ off',name='chip')
         self.launch=self.action_button('launch_apply','▶ Launch BO2 && apply',self.core.start);self.stopbutton=self.action_button('stop_restore','■ Stop && restore',self.core.stop)
-        layout.addLayout(row(title,label('CoD4 / MW2 / BO2 SP / Zombies → BO2 Redacted',name='muted'),self.bo2_chip,self.import_chip,self.launch,self.stopbutton,stretch_at=2))
+        self.lights=TrafficLights(self);self.titlebar=TitleBar(self)
+        self.titlebar.setLayout(row(self.lights,title,label('CoD4 / MW2 / BO2 SP / Zombies → BO2 Redacted',name='muted'),self.bo2_chip,self.import_chip,self.launch,self.stopbutton,stretch_at=3))
+        layout.addWidget(self.titlebar)
         self.card=QtWidgets.QFrame();self.card.setObjectName('card');self.glow(self.card);card=QtWidgets.QVBoxLayout(self.card);card.setContentsMargins(14,10,14,10);card.setSpacing(6)
         self.follow_label=label();self.detected=label();self.replay_note=label()
         heading=label('LIVE TARGET');heading.setStyleSheet('font-weight:bold;letter-spacing:1px')
@@ -361,6 +407,12 @@ class Window(QtWidgets.QMainWindow):
             else:widget.setGraphicsEffect(None)
         self.render_snapshot()
 
+    def toggle_maximized(self):self.showNormal() if self.isMaximized() else self.showMaximized()
+    def showEvent(self,event):
+        super().showEvent(event)
+        if sys.platform=='win32' and not getattr(self,'styled',False): # Frameless windows still minimize and maximize from the taskbar.
+            self.styled=True;hwnd=int(self.winId());user=ctypes.windll.user32;style=user.GetWindowLongW(hwnd,-16)
+            user.SetWindowLongW(hwnd,-16,style|0x00020000|0x00010000|0x00080000) # WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU, no caption.
     def closeEvent(self,event):
         if not self.closing:self.closing=True;self.core.close();self.timer.stop();self.status.setText('Restoring original animations and closing…')
         if self.core.finished():event.accept()
