@@ -1,4 +1,4 @@
-"""BO2SPAnims: CoD4 / MW2 / BO2 SP / Zombies animations in BO2 Redacted MP — Qt front end (GPL-3.0-or-later).
+"""BO2SPAnims: CoD4 / MW2 / MW3 / BO2 SP / Zombies animations in BO2 Redacted MP — Qt front end (GPL-3.0-or-later).
 
 The window is a retro-terminal theme built from one HSL accent color (Settings tab).
 All behavior lives in core.Core; this module only draws it and forwards user input.
@@ -476,7 +476,7 @@ class Window(QtWidgets.QMainWindow):
         self.bo2_chip=label('BO2 ○ waiting',name='chip');self.import_chip=label('imports ○ off',name='chip')
         self.launch=self.action_button('launch_apply','▶ Launch BO2 && apply',self.core.start);self.stopbutton=self.action_button('stop_restore','■ Stop && restore',self.core.stop)
         self.lights=TrafficLights(self);self.titlebar=TitleBar(self)
-        self.subtitle=label('CoD4 / MW2 / BO2 SP / Zombies → BO2 Redacted',name='muted')
+        self.subtitle=label('CoD4 / MW2 / MW3 / BO2 SP / Zombies → BO2 Redacted',name='muted')
         self.titlebar.setLayout(row(title,self.subtitle,self.bo2_chip,self.import_chip,self.launch,self.stopbutton,self.lights,stretch_at=2))
         self.titlebar.layout().setAlignment(self.lights,Qt.AlignVCenter);layout.addWidget(self.titlebar)
         self.card=QtWidgets.QFrame();self.card.setObjectName('card');self.glow(self.card);card=QtWidgets.QVBoxLayout(self.card);card.setContentsMargins(14,10,14,10);card.setSpacing(6)
@@ -553,7 +553,7 @@ class Window(QtWidgets.QMainWindow):
         layout.addWidget(label('BO2SPAnims',name='title'))
         text('Animations from other Call of Duty games in Black Ops II Redacted multiplayer, applied live while you play.',name='muted')
         layout.addWidget(label('WHAT IT DOES',name='section'))
-        text('Pick a clip from CoD4, MW2 single-player actors, BO2 single-player or BO2 Zombies, choose the BO2 body animation it replaces, '
+        text('Pick a clip from CoD4, MW2 or MW3 single-player actors, BO2 single-player or BO2 Zombies, choose the BO2 body animation it replaces, '
              'and your character plays it straight away. Live target follows the animation you’re playing right now, Apply anim restarts it '
              'on demand, and Freelook orbits the third-person camera. Built for staging scenes in custom matches and filming them in Theater '
              'with t6mvm.')
@@ -603,7 +603,7 @@ class Window(QtWidgets.QMainWindow):
         layout.addWidget(label('Click a key button, then press any key (Esc cancels). Right-click most other buttons to give them a hotkey; it works while BO2 is focused.',name='muted'))
         layout.addWidget(rule());layout.addWidget(label('GAME FOLDERS',name='section'))
         self.folder_edits={}
-        for key,name in (('bo2','BO2 Redacted'),('cod4','CoD4'),('mw2','MW2')):
+        for key,name in (('bo2','BO2 Redacted'),('cod4','CoD4'),('mw2','MW2'),('mw3','MW3')):
             edit=QtWidgets.QLineEdit();browse=self.plain_button('Browse',lambda checked=False,e=edit:self.browse(e));self.folder_edits[key]=edit
             name_label=label(name,name='muted');name_label.setMinimumWidth(110);layout.addLayout(row(name_label,edit,browse))
         layout.addLayout(row(self.plain_button('Save folders',self.save_folders),self.plain_button('Detect game folders',self.detect_folders),label('Finds a running BO2, Steam libraries and common install folders.',name='muted'),stretch_at=3))
@@ -624,7 +624,7 @@ class Window(QtWidgets.QMainWindow):
         path=QtWidgets.QFileDialog.getExistingDirectory(self,'Choose folder',edit.text())
         if path:edit.setText(str(Path(path)))
     def detect_folders(self):
-        found=self.core.detect_folders();self.core.set_status('Game folders: '+', '.join(f"{name} {'found' if found[key] else 'not found'}" for key,name in (('bo2','BO2'),('cod4','CoD4'),('mw2','MW2'))))
+        found=self.core.detect_folders();self.core.set_status('Game folders: '+', '.join(f"{name} {'found' if found[key] else 'not found'}" for key,name in (('bo2','BO2'),('cod4','CoD4'),('mw2','MW2'),('mw3','MW3'))))
     def copy_code(self,code):
         if code:QtWidgets.QApplication.clipboard().setText(code)
     def paste_code(self):
@@ -632,7 +632,7 @@ class Window(QtWidgets.QMainWindow):
         if not text.strip():self.core.set_status('Copy a BO2SPAnims share code first, then click Paste share code.');return
         result=self.core.import_share_code(text)
         if result and result[0]=='set':self.set_box.setCurrentText(result[1])
-    def save_folders(self):self.core.set_folders(self.folder_edits['cod4'].text(),self.folder_edits['mw2'].text(),self.folder_edits['bo2'].text());self.core.set_status('Game folders saved.')
+    def save_folders(self):self.core.set_folders(self.folder_edits['cod4'].text(),self.folder_edits['mw2'].text(),self.folder_edits['bo2'].text(),self.folder_edits['mw3'].text());self.core.set_status('Game folders saved.')
 
     # Refresh from core
     def changed(self,*fields):

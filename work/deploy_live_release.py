@@ -39,6 +39,7 @@ for key,name in (
     ('complete_library_conversion','all_clips_validation.json'),
     ('bo2sp_library','bo2sp_library_validation.json'),
     ('bo2zombies_library','bo2zombies_library_validation.json'),
+    ('mw3_library','mw3_library_validation.json'),
     ('hotkeys','hotkeys_validation.json'),
     ('f6_live','f6_live_validation.json'),
 ):
@@ -49,7 +50,7 @@ report['executable_sha256']=hashlib.sha256((root/'BO2SPAnims.exe').read_bytes())
 assert (root/'profile.json').read_bytes()==profile
 assert (root/'BO2SPAnims.exe').read_bytes()==(build/'BO2SPAnims.exe').read_bytes()
 catalog=json.loads((root/'library/catalog.json').read_text())
-counts={game:sum(x['game']==game for x in catalog) for game in ('CoD4','MW2 Actors','BO2 SP','BO2 Zombies')}
+counts={game:sum(x['game']==game for x in catalog) for game in ('CoD4','MW2 Actors','MW3 Actors','BO2 SP','BO2 Zombies')}
 assert counts['CoD4']==2171 and counts['MW2 Actors']==3047 and len(catalog)==sum(counts.values())
 assert all(not Path(x['path']).is_absolute() and (root/x['path']).is_file() for x in catalog)
 for path in json.loads(profile)['mapping'].values():assert (root/path).is_file()

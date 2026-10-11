@@ -1,0 +1,55 @@
+{
+  "clips": 4418,
+  "zones": 36,
+  "rigs": {
+    "pb_stand_alert": 68,
+    "pb_death_run_stumble": 68
+  },
+  "errors": [],
+  "error_count": 0,
+  "spine_corrected": 3802,
+  "static_poses": 276,
+  "destination_bones_without_source_top": [
+    [
+      "tag_weapon_chest",
+      8552
+    ],
+    [
+      "j_helmet",
+      8262
+    ],
+    [
+      "tag_eye",
+      8254
+    ],
+    [
+      "j_jaw",
+      8250
+    ],
+    [
+      "j_lip_top_le",
+      8250
+    ],
+    [
+      "j_lip_top_ri",
+      8250
+    ],
+    [
+      "j_head_end",
+      8136
+    ],
+    [
+      "j_brow_le",
+      8126
+    ],
+    [
+      "j_brow_ri",
+      8126
+    ],
+    [
+      "j_cheek_le",
+      8126
+    ]
+  ],
+  "seconds": 133.4
+}

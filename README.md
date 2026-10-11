@@ -2,11 +2,11 @@
 
 Swap animations from other Call of Duty games into **Black Ops II Redacted multiplayer**, live, while the game is running.
 
-Pick a clip from CoD4, MW2 single-player actors, BO2 single-player, or BO2 Zombies, choose which BO2 body animation to replace, and see it on your character. This is useful for staging scenes in custom matches and filming them in Theater (works alongside t6mvm).
+Pick a clip from CoD4, MW2 or MW3 single-player actors, BO2 single-player, or BO2 Zombies, choose which BO2 body animation to replace, and see it on your character. This is useful for staging scenes in custom matches and filming them in Theater (works alongside t6mvm).
 
 ## Features
 
-- **Over 14,000 body animations**: CoD4 (MP + SP), MW2 actors, BO2 campaign/Strike Force, and BO2 Zombies, all searchable.
+- **Over 19,000 body animations**: CoD4 (MP + SP), MW2 actors, MW3 actors (campaign + Spec Ops), BO2 campaign/Strike Force, and BO2 Zombies, all searchable.
 - **Live target**: follows the animation your character is playing right now, so you know which slot you're replacing.
 - **Apply anim hotkey** (default F6, rebindable): apply the selected clip to your current slot and restart it, without tabbing out.
 - **Freelook** (hold Alt, rebindable): orbit the third-person camera around your character without turning them.
@@ -20,7 +20,7 @@ Pick a clip from CoD4, MW2 single-player actors, BO2 single-player, or BO2 Zombi
 
 - Windows 10/11
 - BO2 Redacted (`t6mpv43.exe`, build 43.1337.7)
-- Optional: CoD4 and MW2 installs to build their libraries. The BO2 SP and Zombies libraries come from your Redacted install.
+- Optional: CoD4, MW2 and MW3 installs to build their libraries (MW3: campaign and Spec Ops; Steam version). The BO2 SP and Zombies libraries come from your Redacted install.
 
 ## Usage
 

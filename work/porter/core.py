@@ -24,7 +24,7 @@ from logfile import LogFile,setup_info
 
 ROOT=Path(sys.executable).resolve().parent if getattr(sys,'frozen',False) else Path(__file__).resolve().parent
 TOOLS=ROOT/'tools';STATE=ROOT/'state';STATE.mkdir(exist_ok=True)
-GAMES=('CoD4','MW2 Actors','BO2 SP','BO2 Zombies')
+GAMES=('CoD4','MW2 Actors','MW3 Actors','BO2 SP','BO2 Zombies')
 DEFAULT_THEME={'h':32,'s':100,'l':52,'glow':True,'style':'terminal','glass':10} # glass: iOS darkening tint 0-60% over the see-through backdrop. # style: 'terminal', 'glass' (shown as iOS) or 'android' (a deliberately low-quality joke); glass: tint 0-100.
 THEME_PRESETS={'Amber':(32,100,52),'Phosphor':(130,90,50),'Cyan':(190,95,55),'Magenta':(320,85,62),'Mono':(0,0,85)}
 
@@ -62,7 +62,8 @@ def game_pids(folder):
 
 # Game folder detection for fresh installs: a running BO2, Steam libraries, then common install folders.
 GAME_NAMES={'bo2':('Call of Duty Black Ops II','Call of Duty - Black Ops II','Black Ops II','BO2'),
-            'cod4':('Call of Duty 4','Call of Duty 4 - Modern Warfare'),'mw2':('Call of Duty Modern Warfare 2','Call of Duty - Modern Warfare 2')}
+            'cod4':('Call of Duty 4','Call of Duty 4 - Modern Warfare'),'mw2':('Call of Duty Modern Warfare 2','Call of Duty - Modern Warfare 2'),
+            'mw3':('Call of Duty Modern Warfare 3','Call of Duty - Modern Warfare 3')}
 def valid_folder(key,folder):
     if not folder or not Path(folder).is_dir():return False
     folder=Path(folder)
@@ -98,7 +99,7 @@ def candidate_folders(key):
 def detect_folders(current):
     """Keep each valid configured folder; otherwise return the best detected one (Redacted BO2 preferred)."""
     result={}
-    for key in ('bo2','cod4','mw2'):
+    for key in ('bo2','cod4','mw2','mw3'):
         if valid_folder(key,current.get(key)):result[key]=current[key];continue
         options=[str(folder) for folder in dict.fromkeys(candidate_folders(key)) if valid_folder(key,folder)]
         if key=='bo2':options.sort(key=lambda folder:not (Path(folder)/'t6mpv43.exe').exists())
@@ -188,10 +189,10 @@ def decode_share(text):
 class Core:
     def __init__(self,ui):
         self.ui=ui;self.logfile=LogFile(ROOT);self.status='';self.mapping={};self.targets=[];self.catalog=[];self.session=None;self.stop_event=threading.Event();self.worker=None;self.indexthread=None;self.lock=threading.Lock();self.closing=False
-        self.cod4='';self.bo2='';self.mw2='';self.building=False;self.build_cancel=threading.Event()
+        self.cod4='';self.bo2='';self.mw2='';self.mw3='';self.building=False;self.build_cancel=threading.Event()
         profile=read_profile(self.log)
         try:
-            self.cod4=profile['cod4'];self.bo2=profile['bo2'];self.mw2=profile.get('mw2',self.mw2)
+            self.cod4=profile['cod4'];self.bo2=profile['bo2'];self.mw2=profile.get('mw2',self.mw2);self.mw3=profile.get('mw3',self.mw3)
             self.mapping={name:str((ROOT/path).resolve()) for name,path in profile.get('mapping',{}).items() if (ROOT/path).is_file()};self.targets=profile.get('targets',[])
         except (OSError,ValueError,KeyError):pass
         self.detect_folders(save=False);folders_found=self.folders_changed and bool(profile) # Saved once every setting is loaded.
@@ -251,11 +252,14 @@ class Core:
         if replay_source:
             try:replay_source=str(Path(replay_source).resolve().relative_to(ROOT))
             except ValueError:pass
-        write_atomic(ROOT/'profile.json',json.dumps({'cod4':self.cod4,'bo2':self.bo2,'mw2':self.mw2,'mapping':mapping,'targets':self.targets,
+        write_atomic(ROOT/'profile.json',json.dumps({'cod4':self.cod4,'bo2':self.bo2,'mw2':self.mw2,'mw3':self.mw3,'mapping':mapping,'targets':self.targets,
             'replay':{'key':self.apply_name,'vk':self.apply_vk,'enabled':self.replay_enabled,'target':self.replay_target,'source':replay_source},
             'hotkeys':self.hotkeys,'favorites':sorted(self.favorites),'saved_sets':self.saved_sets,
             'freelook':{'key':self.freelook_name,'vk':self.freelook_vk,'enabled':self.freelook_enabled,'speed':self.freelook_speed},'movement':self.movement,'theme':self.theme},indent=2),backup=True)
-    def set_folders(self,cod4,mw2,bo2):self.cod4,self.mw2,self.bo2=cod4,mw2,bo2;self.save();self.ui.changed('folders')
+    def set_folders(self,cod4,mw2,bo2,mw3=None):
+        self.cod4,self.mw2,self.bo2=cod4,mw2,bo2
+        if mw3 is not None:self.mw3=mw3
+        self.save();self.ui.changed('folders')
     def set_theme(self,save=True,**values):
         self.theme={**self.theme,**values};self.ui.changed('theme')
         if save:self.save()
@@ -566,8 +570,8 @@ class Core:
             finally:self.post(self.busy_changed)
         self.indexthread=threading.Thread(target=work);self.indexthread.start();self.busy_changed()
     def detect_folders(self,save=True):
-        found=detect_folders({'bo2':self.bo2,'cod4':self.cod4,'mw2':self.mw2});changes=[]
-        for key,label in (('bo2','BO2 Redacted'),('cod4','CoD4'),('mw2','MW2')):
+        found=detect_folders({'bo2':self.bo2,'cod4':self.cod4,'mw2':self.mw2,'mw3':self.mw3});changes=[]
+        for key,label in (('bo2','BO2 Redacted'),('cod4','CoD4'),('mw2','MW2'),('mw3','MW3')):
             if found[key]!=getattr(self,key):setattr(self,key,found[key]);changes.append(f'{label}: {found[key]}')
         self.folders_changed=bool(changes)
         if changes:self.log('Found game folders — '+'; '.join(changes))
@@ -577,7 +581,7 @@ class Core:
         """Build libraries from every installed game (one click). Pressing it again while building cancels."""
         if self.building:self.build_cancel.set();self.set_status('Cancelling the library build…');return
         if not self.idle():return
-        folders={'cod4':self.cod4,'mw2':self.mw2,'bo2':self.bo2};old=[dict(x) for x in self.catalog]
+        folders={'cod4':self.cod4,'mw2':self.mw2,'mw3':self.mw3,'bo2':self.bo2};old=[dict(x) for x in self.catalog]
         self.building=True;self.build_cancel.clear();self.set_status('Building libraries…')
         def progress(done,total,text):self.post(lambda:self.set_status(f'Building libraries: {done}/{total} zones • {text}' if done<total else 'Building libraries: finishing…'))
         def work():

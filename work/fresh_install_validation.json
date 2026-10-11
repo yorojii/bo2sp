@@ -1,21 +1,24 @@
 {
   "fresh_detects_bo2": "F:\\Games\\Call of Duty Black Ops IIOLD",
-  "fresh_build_seconds": 378.6,
-  "fresh_status": "Libraries built: BO2 SP 7,222, BO2 Zombies 2,218. Not installed, kept as they were: CoD4, MW2 Actors.",
+  "fresh_detects_mw3": "D:\\SteamLibrary\\steamapps\\common\\Call of Duty Modern Warfare 3",
+  "fresh_build_seconds": 598.1,
+  "fresh_status": "Libraries built: MW3 Actors 4,418, BO2 SP 7,222, BO2 Zombies 2,218. Not installed, kept as they were: CoD4, MW2 Actors.",
   "fresh_matches_release": {
     "BO2 SP": 7222,
     "BO2 Zombies": 2218,
+    "MW3 Actors": 4418,
     "byte_identical": true
   },
   "skipped_games_reported": [
     "CoD4: game folder not found; skipped.",
     "MW2 Actors: game folder not found; skipped."
   ],
-  "library_size_mb": 549.3,
-  "rebuild_seconds": 8.6,
+  "library_size_mb": 892.3,
+  "rebuild_seconds": 11.7,
   "rebuild_counts": {
     "CoD4": 2171,
     "MW2 Actors": 3047,
+    "MW3 Actors": 4418,
     "BO2 SP": 7222,
     "BO2 Zombies": 2218
   },

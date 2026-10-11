@@ -19,7 +19,7 @@ def pump(seconds=0.3):
 try:
     pump()
     tabs=[window.tabs.tabText(i).split(' ')[0] if not window.tabs.tabText(i).startswith('★') else 'Favorites' for i in range(window.tabs.count())]
-    assert tabs==['Favorites','CoD4','MW2','BO2','BO2','Replacements','Debug','Settings','About'],tabs;result['tabs']=[window.tabs.tabText(i) for i in range(window.tabs.count())]
+    assert tabs==['Favorites','CoD4','MW2','MW3','BO2','BO2','Replacements','Debug','Settings','About'],tabs;result['tabs']=[window.tabs.tabText(i) for i in range(window.tabs.count())]
     c=window.core
     assert window.apply_button.text()==f'[{c.apply_name}] Apply anim';result['apply_button_shows_key']=window.apply_button.text()
     assert 'use_clip:CoD4' not in window.buttons and 'lock_target' not in window.buttons;result['use_clip_and_lock_have_no_hotkey']=True

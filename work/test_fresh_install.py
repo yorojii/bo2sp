@@ -1,7 +1,7 @@
 """Fresh-install one-click library build. Reads game files only; no game memory writes.
 
 Phase A: an empty folder (tools only, no profile, no library) detects the game folders and
-builds the libraries once; BO2 SP and BO2 Zombies must match the release library clip for
+builds the libraries once; BO2 SP, BO2 Zombies and MW3 Actors must match the release library clip for
 clip (same game/zone/name keys and identical bytes).
 Phase B: the same folder is given the full release catalog and a mapping, then built again
 (per-zone cache, so fast): games that aren't installed keep their clips, and the mapping is
@@ -29,13 +29,14 @@ try:
     if phase_b_only:raise SystemExit
     app.start=lambda:None
     ui.pump(0.2);assert app.bo2 and core.valid_folder('bo2',app.bo2) and not app.catalog;result['fresh_detects_bo2']=app.bo2
+    assert core.valid_folder('mw3',app.mw3),app.mw3;result['fresh_detects_mw3']=app.mw3
     result['fresh_build_seconds']=build(app,ui);result['fresh_status']=app.status
-    released={app.clip_key(x):x for x in json.loads((release/'library/catalog.json').read_text()) if x['game'] in ('BO2 SP','BO2 Zombies')}
-    built={app.clip_key(x):x for x in app.catalog if x['game'] in ('BO2 SP','BO2 Zombies')}
+    released={app.clip_key(x):x for x in json.loads((release/'library/catalog.json').read_text()) if x['game'] in ('BO2 SP','BO2 Zombies','MW3 Actors')}
+    built={app.clip_key(x):x for x in app.catalog if x['game'] in ('BO2 SP','BO2 Zombies','MW3 Actors')}
     assert set(built)==set(released),(len(built),len(released),sorted(set(built)^set(released))[:5])
     mismatched=[key for key in built if digest(built[key]['path'])!=digest(release/released[key]['path'])]
     assert not mismatched,mismatched[:5]
-    result['fresh_matches_release']={'BO2 SP':sum(x['game']=='BO2 SP' for x in built.values()),'BO2 Zombies':sum(x['game']=='BO2 Zombies' for x in built.values()),'byte_identical':True}
+    result['fresh_matches_release']={**{g:sum(x['game']==g for x in built.values()) for g in ('BO2 SP','BO2 Zombies','MW3 Actors')},'byte_identical':True}
     result['skipped_games_reported']=[line for line in ui.logs if 'skipped' in line]
     result['library_size_mb']=round(sum(f.stat().st_size for f in (root/'library').rglob('*') if f.is_file())/2**20,1)
 except SystemExit:pass

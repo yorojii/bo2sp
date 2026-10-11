@@ -1,4 +1,4 @@
-"""Local CoD4 / MW2 actor / BO2 single-player and Zombies library indexing for BO2SPAnims.
+"""Local CoD4 / MW2 and MW3 actor / BO2 single-player and Zombies library indexing for BO2SPAnims.
 
 index_libraries() builds the clip catalog from whichever game folders exist. A game whose
 folder is missing or unset is skipped (and reported) rather than failing the whole build.
@@ -24,11 +24,11 @@ def bo2_zombies(ff):
 
 # kind: (catalog game, zone filter, zone credited first for clips shared between zones)
 BO2_LIBRARIES={'sp':('BO2 SP',bo2_single_player,'common'),'zombies':('BO2 Zombies',bo2_zombies,'common_zm')}
-GAMES=('CoD4','MW2 Actors','BO2 SP','BO2 Zombies')
-FOLDER_KEY={'CoD4':'cod4','MW2 Actors':'mw2','BO2 SP':'bo2','BO2 Zombies':'bo2'}
+GAMES=('CoD4','MW2 Actors','MW3 Actors','BO2 SP','BO2 Zombies')
+FOLDER_KEY={'CoD4':'cod4','MW2 Actors':'mw2','MW3 Actors':'mw3','BO2 SP':'bo2','BO2 Zombies':'bo2'}
 
 def language_zone(folder):
-    """CoD4/MW2 keep their zones in zone/<language>; prefer english, else the only one with common_mp.ff."""
+    """CoD4/MW2/MW3 keep their zones in zone/<language>; prefer english, else the only one with common_mp.ff."""
     zone=Path(folder)/'zone'
     if (zone/'english').is_dir():return zone/'english'
     found=[p.parent for p in zone.glob('*/common_mp.ff')]
@@ -47,11 +47,18 @@ def game_zones(game,folder):
         if base is None or not (base/'common_mp.ff').exists():return None
         files=[p for p in base.glob('*.ff') if not p.name.startswith(('mp_','localized_','code_','ui','xcommon_','dlc','patch')) and (game=='CoD4' or p.stat().st_size>20_000_000)]
         if game=='MW2 Actors':files=[p for p in files if p.name not in ('common_mp.ff','iw4_credits.ff')]
+        elif game=='MW3 Actors': # Campaign and Spec Ops only: MP zones are signed (a different container) and skipped.
+            files=[p for p in base.glob('*.ff') if not p.name.startswith(('mp_','localized_','code_','ui','patch')) and p.name!='common_mp.ff' and unsigned(p)]
         elif (base/'common_mp.ff') not in files:files.append(base/'common_mp.ff')
     return sorted(files,key=lambda p:(p.name not in ('common_mp.ff','common.ff','common_zm.ff'),p.name))
 
+def unsigned(ff):
+    try:
+        with open(ff,'rb') as f:return f.read(8)==b'IWffu100'
+    except OSError:return False
+
 def index_libraries(folders,root,unlinker,log,stopped=lambda:False,progress=lambda done,total,text:None):
-    """folders: {'cod4','mw2','bo2'} paths. Returns (catalog, built games, skipped games), or None if stopped."""
+    """folders: {'cod4','mw2','mw3','bo2'} paths. Returns (catalog, built games, skipped games), or None if stopped."""
     root=Path(root);unlinker=Path(unlinker)
     if not unlinker.exists():raise FileNotFoundError('tools/Unlinker.exe is missing. Keep the whole BO2SPAnims folder together.')
     plan=[];skipped=[]

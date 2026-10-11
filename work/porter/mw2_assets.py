@@ -77,12 +77,16 @@ def read_delta(r,frames):
 def extract_fastfile(ff,output,log=print):
     ff=Path(ff);output=Path(output);output.mkdir(parents=True,exist_ok=True)
     raw=ff.read_bytes()
-    if raw[:8]!=b'IWffu100' or struct.unpack_from('<I',raw,8)[0]!=276:raise ValueError('Expected MW2 SP unsigned PC fastfile')
+    # MW2 (version 276) and MW3 (version 1) Steam fastfiles share this 64-bit serialized layout; MW3's file header has a
+    # ninth block size, so its asset list starts 4 bytes later. Same XAnimParts header and arrays otherwise.
+    layout={276:(40,'MW2 Actors'),1:(44,'MW3 Actors')}.get(struct.unpack_from('<I',raw,8)[0]) if raw[:8]==b'IWffu100' else None
+    if not layout:raise ValueError('Expected an unsigned MW2 or MW3 SP PC fastfile')
+    start,game=layout
     data=zlib.decompress(raw[21:])
     if len(data)>500_000_000:raise ValueError('Fastfile is too large')
-    count,ptr=struct.unpack_from('<QQ',data,40)
-    if not 1<count<65536 or ptr!=INLINE:raise ValueError('Unsupported MW2 SP script-string table')
-    strings=[''];r=Reader(data);r.pos=72
+    count,ptr=struct.unpack_from('<QQ',data,start)
+    if not 1<count<65536 or ptr!=INLINE:raise ValueError('Unsupported script-string table')
+    strings=[''];r=Reader(data);r.pos=start+32
     flags=r.unpack('Q'*count)
     for index,flag in enumerate(flags):
         if index==0:
@@ -125,7 +129,7 @@ def extract_fastfile(ff,output,log=print):
                 if isinstance(value,bytes):return value.hex()
                 raise TypeError()
             path.write_bytes(b'YANIM\x01'+zlib.compress(json.dumps({'format':'yoroji.animation.v1','animation':anim},default=serial,separators=(',',':')).encode(),6))
-            catalog.append({'game':'MW2 Actors','zone':ff.stem,'name':name,'path':str(path.resolve()),'frames':frames,'fps':fps,'loop':anim['loop'],'bones':len(names)})
+            catalog.append({'game':game,'zone':ff.stem,'name':name,'path':str(path.resolve()),'frames':frames,'fps':fps,'loop':anim['loop'],'bones':len(names)})
         except (ValueError,IndexError,struct.error) as e:failures[str(e)]=failures.get(str(e),0)+1
     log(f'{ff.stem}: {len(catalog)} verified actor clips')
     return catalog,failures
