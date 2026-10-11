@@ -2,7 +2,7 @@ import sys,json,ctypes,traceback,time
 from pathlib import Path
 sys.path.insert(0,'work/porter')
 from runtime import Session,k
-root=Path('outputs/Yoroji Tool').resolve()
+root=Path('outputs/BO2SPAnims').resolve()
 mapping={name:str(root/path) for name,path in json.loads((root/'profile.json').read_text())['mapping'].items()}
 s=Session(int(sys.argv[1]));baseline={name:s.assets[name] for name in mapping if name in s.assets}
 normal=s.alloc;stats=[];report={};ever_published=False

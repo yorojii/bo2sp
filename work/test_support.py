@@ -9,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0,'work/porter')
 import core
 
-FINAL=Path('outputs/Yoroji Tool').resolve()
+FINAL=Path('outputs/BO2SPAnims').resolve()
 
 def isolated_root(name,edit=None):
     root=Path('work',name).resolve();(root/'state').mkdir(parents=True,exist_ok=True);(root/'library').mkdir(exist_ok=True)

@@ -49,11 +49,11 @@ assert all(abs(DIRECT_SPINE_OFFSET[i]-(direct[i]-bind[i]))<2e-6 for i in range(3
 
 original=load_clip('work/bo2/common_mp/xanim/pb_stand_alert')
 target_names=[t['name'] for t in original['tracks']]
-catalog=json.loads(Path('outputs/Yoroji Tool/library/catalog.json').read_text())
+catalog=json.loads(Path('outputs/BO2SPAnims/library/catalog.json').read_text())
 counts=collections.defaultdict(collections.Counter);key_count=0;maximum_error=0;roundtrips=0;errors=[]
 for index,item in enumerate(catalog):
     try:
-        anim=load_clip(Path('outputs/Yoroji Tool')/item['path']);source={t['name']:t for t in anim['tracks']}
+        anim=load_clip(Path('outputs/BO2SPAnims')/item['path']);source={t['name']:t for t in anim['tracks']}
         adapted,missing=adapt_tracks(anim,target_names);tracks={t['name']:t for t in adapted['tracks']}
         assert [t['name'] for t in adapted['tracks']]==target_names
         corrected='torso_stabilizer' not in source and 'j_spinelower' in source and 'j_mainroot' in source

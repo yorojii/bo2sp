@@ -73,7 +73,7 @@ def install_camera(folder):
     path=root/'data/scripts/yoroji_third_person.gsc'
     data=CAMERA_SCRIPT.encode('ascii')
     if path.exists() and path.read_bytes()!=data:
-        raise ValueError('The camera script was edited outside Yoroji Tool. It has been preserved.')
+        raise ValueError('The camera script was edited outside BO2SPAnims. It has been preserved.')
     path.parent.mkdir(parents=True,exist_ok=True)
     path.write_bytes(data)
     return path

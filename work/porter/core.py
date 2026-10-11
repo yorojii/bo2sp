@@ -12,7 +12,7 @@ No GUI toolkit here. A front end passes a `ui` object providing:
 Core methods are called on the UI thread; worker threads only reach the UI through post().
 """
 from pathlib import Path
-import csv,ctypes,hashlib,json,queue,subprocess,sys,threading,time
+import csv,ctypes,hashlib,json,os,queue,subprocess,sys,threading,time
 from ctypes import wintypes
 from runtime import Session,decode,load_clip,body_clip,k
 from camera import install_camera
@@ -53,6 +53,28 @@ def game_pids(folder):
             ok=k.Process32NextW(snapshot,ctypes.byref(row))
     finally:k.CloseHandle(snapshot)
     return result
+
+def write_atomic(path,text,backup=False):
+    """Write a file so a crash or power loss leaves either the old or the new version, never a partial one."""
+    path=Path(path);temp=path.with_name(path.name+'.tmp')
+    with open(temp,'w',encoding='utf-8',newline='\n') as handle:handle.write(text);handle.flush();os.fsync(handle.fileno())
+    if backup and path.exists():
+        try:json.loads(path.read_text(encoding='utf-8'));os.replace(path,path.with_name(path.name+'.bak')) # Keep the last good copy.
+        except (OSError,ValueError):pass
+    os.replace(temp,path)
+
+def read_profile(log):
+    """profile.json, or its .bak copy if the main file is missing or unreadable."""
+    path=ROOT/'profile.json';backup=path.with_name('profile.json.bak')
+    for candidate in (path,backup):
+        try:
+            profile=json.loads(candidate.read_text(encoding='utf-8'))
+            if candidate==backup:log('profile.json was unreadable; loaded the backup copy profile.json.bak.')
+            return profile
+        except FileNotFoundError:continue
+        except (OSError,ValueError):
+            if candidate==path:log('profile.json is unreadable; trying the backup copy.')
+    return {}
 
 def unlink(args,log):
     exe=TOOLS/'Unlinker.exe'
@@ -98,9 +120,9 @@ class Core:
     def __init__(self,ui):
         self.ui=ui;self.mapping={};self.targets=[];self.catalog=[];self.session=None;self.stop_event=threading.Event();self.worker=None;self.indexthread=None;self.lock=threading.Lock();self.closing=False
         self.cod4=r'D:\Call of Duty 4';self.bo2=r'F:\Games\Call of Duty Black Ops IIOLD';self.mw2=r'D:\SteamLibrary\steamapps\common\Call of Duty Modern Warfare 2'
-        profile={}
+        profile=read_profile(lambda text:self.post(lambda:self.ui.append_log(text)))
         try:
-            profile=json.loads((ROOT/'profile.json').read_text());self.cod4=profile['cod4'];self.bo2=profile['bo2'];self.mw2=profile.get('mw2',self.mw2)
+            self.cod4=profile['cod4'];self.bo2=profile['bo2'];self.mw2=profile.get('mw2',self.mw2)
             self.mapping={name:str((ROOT/path).resolve()) for name,path in profile.get('mapping',{}).items() if (ROOT/path).is_file()};self.targets=profile.get('targets',[])
         except (OSError,ValueError,KeyError):pass
         self.status='Choose a source clip and a BO2 replacement slot.';self.live='Imports inactive. Live target detection is running.';self.target='pb_stand_alert'
@@ -152,10 +174,10 @@ class Core:
         if replay_source:
             try:replay_source=str(Path(replay_source).resolve().relative_to(ROOT))
             except ValueError:pass
-        (ROOT/'profile.json').write_text(json.dumps({'cod4':self.cod4,'bo2':self.bo2,'mw2':self.mw2,'mapping':mapping,'targets':self.targets,
+        write_atomic(ROOT/'profile.json',json.dumps({'cod4':self.cod4,'bo2':self.bo2,'mw2':self.mw2,'mapping':mapping,'targets':self.targets,
             'replay':{'key':self.apply_name,'vk':self.apply_vk,'enabled':self.replay_enabled,'target':self.replay_target,'source':replay_source},
             'hotkeys':self.hotkeys,'favorites':sorted(self.favorites),'saved_sets':self.saved_sets,
-            'freelook':{'key':self.freelook_name,'vk':self.freelook_vk,'enabled':self.freelook_enabled,'speed':self.freelook_speed},'theme':self.theme},indent=2))
+            'freelook':{'key':self.freelook_name,'vk':self.freelook_vk,'enabled':self.freelook_enabled,'speed':self.freelook_speed},'theme':self.theme},indent=2),backup=True)
     def set_folders(self,cod4,mw2,bo2):self.cod4,self.mw2,self.bo2=cod4,mw2,bo2;self.save();self.ui.changed('folders')
     def set_theme(self,save=True,**values):
         self.theme={**self.theme,**values};self.ui.changed('theme')
@@ -439,7 +461,7 @@ class Core:
                 catalog=index_libraries(cod4,mw2,ROOT/'library',TOOLS/'Unlinker.exe',self.log,lambda:self.closing,bo2)
                 if catalog is not None:
                     for item in catalog:item['path']=str(Path(item['path']).relative_to(ROOT))
-                    (ROOT/'library/catalog.json').write_text(json.dumps(catalog));self.post(self.read_library);self.post(self.refresh)
+                    write_atomic(ROOT/'library/catalog.json',json.dumps(catalog));self.post(self.read_library);self.post(self.refresh)
             except Exception as e:self.log(str(e));self.post(lambda:self.set_status('Library scan stopped; see the log.'))
             finally:self.post(self.busy_changed)
         self.indexthread=threading.Thread(target=work);self.indexthread.start();self.busy_changed()

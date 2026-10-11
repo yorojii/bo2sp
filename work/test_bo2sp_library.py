@@ -20,7 +20,7 @@ def normalized(value):
     if isinstance(value,(tuple,list)):return [normalized(v) for v in value]
     return value
 kind=sys.argv[1] if len(sys.argv)>1 else 'sp';game={'sp':'BO2 SP','zombies':'BO2 Zombies'}[kind]
-started=time.monotonic();release=WORK.parent/'outputs/Yoroji Tool'
+started=time.monotonic();release=WORK.parent/'outputs/BO2SPAnims'
 rigs={name:[t['name'] for t in decode((WORK/'bo2/common_mp/xanim'/name).read_bytes())['tracks']] for name in ('pb_stand_alert','pb_death_run_stumble')}
 clips=[x for x in json.loads((release/'library/catalog.json').read_text()) if x['game']==game]
 assert clips,f'No {game} clips in the release catalog'

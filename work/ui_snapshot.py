@@ -13,7 +13,7 @@ sys.path.insert(0,'work/porter')
 import core
 from PySide6 import QtWidgets,QtCore
 out=Path(sys.argv[1] if len(sys.argv)>1 else 'work/ui_snapshots');out.mkdir(parents=True,exist_ok=True)
-final=Path('outputs/Yoroji Tool').resolve();root=Path('work/ui_snapshot_test').resolve();(root/'state').mkdir(parents=True,exist_ok=True);(root/'library').mkdir(exist_ok=True)
+final=Path('outputs/BO2SPAnims').resolve();root=Path('work/ui_snapshot_test').resolve();(root/'state').mkdir(parents=True,exist_ok=True);(root/'library').mkdir(exist_ok=True)
 profile=json.loads((final/'profile.json').read_text());profile['mapping']={n:str(final/p) for n,p in profile['mapping'].items()}
 (root/'profile.json').write_text(json.dumps(profile));catalog=json.loads((final/'library/catalog.json').read_text())
 for item in catalog:item['path']=str(final/item['path'])

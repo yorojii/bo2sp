@@ -29,7 +29,7 @@ try:
 finally:look.stop();freelook.u=real
 assert not look.is_alive();result['hooks_closed']=True
 
-pids=core.game_pids(json.loads(Path('outputs/Yoroji Tool/profile.json').read_text())['bo2'])
+pids=core.game_pids(json.loads(Path('outputs/BO2SPAnims/profile.json').read_text())['bo2'])
 if len(pids)==1:
     camera=freelook.CameraDvars(pids[0])
     try:result['live_camera_read']={'angle':camera.get(camera.angle),'range':camera.get(camera.range),'limits':[list(v) for v in camera.limits.values()]}

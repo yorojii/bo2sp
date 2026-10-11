@@ -4,7 +4,7 @@ sys.path.insert(0,'work/porter')
 import runtime_app as gui
 from runtime import Session
 
-final=Path('outputs/Yoroji Tool').resolve();root=Path('work/live_gui_test').resolve();root.mkdir(exist_ok=True);(root/'state').mkdir(exist_ok=True);(root/'library').mkdir(exist_ok=True)
+final=Path('outputs/BO2SPAnims').resolve();root=Path('work/live_gui_test').resolve();root.mkdir(exist_ok=True);(root/'state').mkdir(exist_ok=True);(root/'library').mkdir(exist_ok=True)
 profile=json.loads((final/'profile.json').read_text());profile['mapping']={k:str((final/v).resolve()) for k,v in profile['mapping'].items()}
 (root/'profile.json').write_text(json.dumps(profile));catalog=json.loads((final/'library/catalog.json').read_text())
 for item in catalog:item['path']=str((final/item['path']).resolve())

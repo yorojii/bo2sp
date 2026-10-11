@@ -1,4 +1,4 @@
-"""Local CoD4 / MW2 actor / BO2 single-player and Zombies library indexing for Yoroji Tool."""
+"""Local CoD4 / MW2 actor / BO2 single-player and Zombies library indexing for BO2SPAnims."""
 from pathlib import Path
 import hashlib,json,subprocess
 from runtime import decode,body_clip

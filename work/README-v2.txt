@@ -1,7 +1,7 @@
-BO2SPAnims (Yoroji Tool.exe)
+BO2SPAnims
 CoD4 single-player / multiplayer, MW2 actor and BO2 single-player / Zombies animations in BO2 Redacted MP
 
-Open Yoroji Tool.exe. Your game folders and saved animation choices are ready.
+Open BO2SPAnims.exe. Your game folders and saved animation choices are ready.
 Click "Launch BO2 & apply" (top right) to launch BO2 or attach to your
 running game. Keep the tool open while playing or viewing demos.
 
@@ -143,7 +143,7 @@ Source and licenses
 The source/ folder contains the importer under GPL-3.0-or-later.
 LICENSE.txt contains the license.
 Build with Python 3.10, PySide6-Essentials 6.11.2 and PyInstaller 6.16:
-python -m PyInstaller --windowed --onedir --name "Yoroji Tool" --add-data "source/assets/watermark.png;assets" source/bo2spanims.py
+python -m PyInstaller --windowed --onedir --name BO2SPAnims --icon source/assets/app.ico --add-data "source/assets;assets" source/bo2spanims.py
 Keep tools/Unlinker.exe, library and profile.json beside the built executable.
 The interface uses Qt for Python (PySide6), licensed under the LGPL-3.0;
 see https://www.qt.io/qt-licensing and https://doc.qt.io/qtforpython-6/.
@@ -156,3 +156,7 @@ https://github.com/Scobalula/Greyhound
 https://github.com/Amyst82/T6SDK
 https://github.com/callofduty4x/CoD4x_Server
 Python notices are in _internal/licenses/ where present.
+
+Your settings are saved crash-safely: profile.json is written in one step,
+and the previous copy is kept as profile.json.bak. If profile.json is ever
+damaged, the tool loads the backup automatically and says so in the log.

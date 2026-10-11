@@ -2,13 +2,13 @@ from pathlib import Path
 import hashlib,json,shutil
 
 workspace=Path(__file__).resolve().parent.parent
-root=workspace/'outputs/Yoroji Tool'
-build=workspace/'work/yoroji_live_build/Yoroji Tool'
+root=workspace/'outputs/BO2SPAnims'
+build=workspace/'work/yoroji_live_build/BO2SPAnims'
 assert root.is_dir() and build.is_dir()
 profile=(root/'profile.json').read_bytes()
-recovery=workspace/'work/recovery/Yoroji Tool-before-live-target.exe'
-if not recovery.exists():shutil.copy2(root/'Yoroji Tool.exe',recovery)
-shutil.copy2(build/'Yoroji Tool.exe',root/'Yoroji Tool.exe')
+recovery=workspace/'work/recovery/BO2SPAnims-before-live-target.exe'
+if not recovery.exists():shutil.copy2(root/'BO2SPAnims.exe',recovery)
+shutil.copy2(build/'BO2SPAnims.exe',root/'BO2SPAnims.exe')
 for source in (build/'_internal').rglob('*'):
     if not source.is_file():continue
     target=root/'_internal'/source.relative_to(build/'_internal')
@@ -44,10 +44,10 @@ for key,name in (
 ):
     testfile=workspace/'work'/name
     if testfile.is_file():report[key]=json.loads(testfile.read_text())
-report['executable_sha256']=hashlib.sha256((root/'Yoroji Tool.exe').read_bytes()).hexdigest()
+report['executable_sha256']=hashlib.sha256((root/'BO2SPAnims.exe').read_bytes()).hexdigest()
 (root/'Validation.json').write_text(json.dumps(report,indent=2))
 assert (root/'profile.json').read_bytes()==profile
-assert (root/'Yoroji Tool.exe').read_bytes()==(build/'Yoroji Tool.exe').read_bytes()
+assert (root/'BO2SPAnims.exe').read_bytes()==(build/'BO2SPAnims.exe').read_bytes()
 catalog=json.loads((root/'library/catalog.json').read_text())
 counts={game:sum(x['game']==game for x in catalog) for game in ('CoD4','MW2 Actors','BO2 SP','BO2 Zombies')}
 assert counts['CoD4']==2171 and counts['MW2 Actors']==3047 and len(catalog)==sum(counts.values())
@@ -55,4 +55,4 @@ assert all(not Path(x['path']).is_absolute() and (root/x['path']).is_file() for 
 for path in json.loads(profile)['mapping'].values():assert (root/path).is_file()
 ff=Path(r'F:\Games\Call of Duty Black Ops IIOLD\zone\all\common_mp.ff')
 assert hashlib.sha256(ff.read_bytes()).hexdigest()==report['original_common_mp_sha256']
-print(json.dumps({'deployed':str(root/'Yoroji Tool.exe'),'library_clips':len(catalog),'saved_replacements':report['saved_replacements'],'profile_preserved':True,'original_fastfile_unchanged':True,'sha256':report['executable_sha256']}))
+print(json.dumps({'deployed':str(root/'BO2SPAnims.exe'),'library_clips':len(catalog),'saved_replacements':report['saved_replacements'],'profile_preserved':True,'original_fastfile_unchanged':True,'sha256':report['executable_sha256']}))
