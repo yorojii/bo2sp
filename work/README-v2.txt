@@ -100,8 +100,20 @@ campaign zones in your BO2 folder's zone/all. BO2 Zombies contains zombie
 AI clips plus the Zombies player body and upper-body clips.
 In Settings, "Load CoD4 basics" resets to 142 compatible basics, including
 22 deaths, plus running, walking, sprinting, crouching, crawling, jumping
-and stances. "Refresh source libraries" re-extracts character clips from
-the game folders set in Settings.
+and stances.
+
+Building the libraries (one click)
+On a new install, open Settings and click "Build libraries". It extracts
+the character animations from every game it finds: BO2 single-player and
+Zombies from your BO2 folder, plus CoD4 and MW2 if they are installed.
+Games that aren't installed are skipped (and keep any clips already in the
+library). Progress shows in the status line and the Debug log; it takes
+several minutes. Click the button again (it reads "Cancel build") to stop;
+building again continues where it stopped, because each zone is cached.
+Game folders are found automatically (a running BO2, Steam libraries and
+common install folders such as X:\Games). If one isn't found, set it in
+Settings > Game folders or click "Detect game folders". Your replacements,
+favorites and saved sets keep working after a rebuild.
 
 Choose looping clips for movement slots and one-shot clips for deaths.
 Scene clips retain their original timing and movement; their framing and

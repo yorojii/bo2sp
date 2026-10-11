@@ -12,7 +12,7 @@ No GUI toolkit here. A front end passes a `ui` object providing:
 Core methods are called on the UI thread; worker threads only reach the UI through post().
 """
 from pathlib import Path
-import csv,ctypes,hashlib,json,os,queue,subprocess,sys,threading,time
+import csv,ctypes,hashlib,json,os,queue,re,subprocess,sys,threading,time
 from ctypes import wintypes
 from runtime import Session,decode,load_clip,body_clip,k
 from camera import install_camera
@@ -35,7 +35,8 @@ k.Process32FirstW.argtypes=[wintypes.HANDLE,ctypes.POINTER(ProcessEntry)];k.Proc
 k.Process32NextW.argtypes=k.Process32FirstW.argtypes;k.Process32NextW.restype=wintypes.BOOL
 k.QueryFullProcessImageNameW.argtypes=[wintypes.HANDLE,wintypes.DWORD,wintypes.LPWSTR,ctypes.POINTER(wintypes.DWORD)];k.QueryFullProcessImageNameW.restype=wintypes.BOOL
 
-def game_pids(folder):
+def running_games():
+    """(pid, executable path) of every running BO2 MP process."""
     snapshot=k.CreateToolhelp32Snapshot(2,0)
     if snapshot in (None,ctypes.c_void_p(-1).value):raise OSError('Cannot inspect running games')
     row=ProcessEntry();row.size=ctypes.sizeof(row);result=[]
@@ -47,11 +48,59 @@ def game_pids(folder):
                 if handle:
                     try:
                         buf=ctypes.create_unicode_buffer(4096);length=wintypes.DWORD(len(buf))
-                        if k.QueryFullProcessImageNameW(handle,0,buf,ctypes.byref(length)):
-                            if Path(buf.value).parent.resolve()==Path(folder).resolve():result.append(row.pid)
+                        if k.QueryFullProcessImageNameW(handle,0,buf,ctypes.byref(length)):result.append((row.pid,Path(buf.value)))
                     finally:k.CloseHandle(handle)
             ok=k.Process32NextW(snapshot,ctypes.byref(row))
     finally:k.CloseHandle(snapshot)
+    return result
+
+def game_pids(folder):
+    if not folder:return []
+    folder=Path(folder).resolve();return [pid for pid,exe in running_games() if exe.parent.resolve()==folder]
+
+# Game folder detection for fresh installs: a running BO2, Steam libraries, then common install folders.
+GAME_NAMES={'bo2':('Call of Duty Black Ops II','Call of Duty - Black Ops II','Black Ops II','BO2'),
+            'cod4':('Call of Duty 4','Call of Duty 4 - Modern Warfare'),'mw2':('Call of Duty Modern Warfare 2','Call of Duty - Modern Warfare 2')}
+def valid_folder(key,folder):
+    if not folder or not Path(folder).is_dir():return False
+    folder=Path(folder)
+    if key=='bo2':return (folder/'zone/all/common_mp.ff').exists() and any((folder/exe).exists() for exe in ('t6mpv43.exe','t6mp.exe'))
+    from library import language_zone
+    base=language_zone(folder);return base is not None and (base/'common_mp.ff').exists()
+def steam_libraries():
+    roots=[]
+    try:
+        import winreg
+        for hive,key,value in ((winreg.HKEY_CURRENT_USER,r'Software\Valve\Steam','SteamPath'),(winreg.HKEY_LOCAL_MACHINE,r'SOFTWARE\WOW6432Node\Valve\Steam','InstallPath')):
+            try:
+                with winreg.OpenKey(hive,key) as handle:roots.append(Path(winreg.QueryValueEx(handle,value)[0]))
+            except OSError:pass
+    except ImportError:pass
+    libraries=[]
+    for root in roots:
+        libraries.append(root/'steamapps')
+        try:libraries+=[Path(path.replace('\\\\','\\'))/'steamapps' for path in re.findall(r'"path"\s+"([^"]+)"',(root/'steamapps/libraryfolders.vdf').read_text(errors='replace'))]
+        except OSError:pass
+    return list(dict.fromkeys(libraries))
+def candidate_folders(key):
+    found=[]
+    if key=='bo2':
+        try:found+=[exe.parent for pid,exe in running_games()]
+        except OSError:pass
+    for library in steam_libraries():found+=[library/'common'/name for name in GAME_NAMES[key]]
+    for drive in (f'{letter}:\\' for letter in 'CDEFGHIJ'):
+        for parent in (Path(drive),Path(drive)/'Games',Path(drive)/'Program Files (x86)',Path(drive)/'Program Files (x86)/Activision'):
+            try:found+=[child for child in parent.iterdir() if child.is_dir() and any(child.name.lower().startswith(name.lower()) for name in GAME_NAMES[key])]
+            except OSError:pass
+    return found
+def detect_folders(current):
+    """Keep each valid configured folder; otherwise return the best detected one (Redacted BO2 preferred)."""
+    result={}
+    for key in ('bo2','cod4','mw2'):
+        if valid_folder(key,current.get(key)):result[key]=current[key];continue
+        options=[str(folder) for folder in dict.fromkeys(candidate_folders(key)) if valid_folder(key,folder)]
+        if key=='bo2':options.sort(key=lambda folder:not (Path(folder)/'t6mpv43.exe').exists())
+        result[key]=options[0] if options else (current.get(key) or '')
     return result
 
 def write_atomic(path,text,backup=False):
@@ -122,12 +171,13 @@ def scan(cod4,bo2,log=print):
 class Core:
     def __init__(self,ui):
         self.ui=ui;self.mapping={};self.targets=[];self.catalog=[];self.session=None;self.stop_event=threading.Event();self.worker=None;self.indexthread=None;self.lock=threading.Lock();self.closing=False
-        self.cod4=r'D:\Call of Duty 4';self.bo2=r'F:\Games\Call of Duty Black Ops IIOLD';self.mw2=r'D:\SteamLibrary\steamapps\common\Call of Duty Modern Warfare 2'
+        self.cod4='';self.bo2='';self.mw2='';self.building=False;self.build_cancel=threading.Event()
         profile=read_profile(lambda text:self.post(lambda:self.ui.append_log(text)))
         try:
             self.cod4=profile['cod4'];self.bo2=profile['bo2'];self.mw2=profile.get('mw2',self.mw2)
             self.mapping={name:str((ROOT/path).resolve()) for name,path in profile.get('mapping',{}).items() if (ROOT/path).is_file()};self.targets=profile.get('targets',[])
         except (OSError,ValueError,KeyError):pass
+        self.detect_folders(save=False);folders_found=self.folders_changed and bool(profile) # Saved once every setting is loaded.
         self.status='Choose a source clip and a BO2 replacement slot.';self.live='Imports inactive. Live target detection is running.';self.target='pb_stand_alert'
         self.follow_live=True;self.live_lock=False;self.last_snapshot={};self.detected_at=0
         self.detected='Looking for your character…';self.target_note='Automatic target: waiting for a match.'
@@ -151,6 +201,7 @@ class Core:
         self.read_library();self.update_target_note()
         self.observer=threading.Thread(target=self.observe_game,name='Live target observer');self.observer.start()
         self.hotkey=HotkeyListener();self.freelook=Freelook()
+        if folders_found:self.save()
 
     # Plumbing
     def post(self,fn):
@@ -455,19 +506,43 @@ class Core:
             except Exception as e:self.log(str(e))
             finally:self.post(self.busy_changed)
         self.indexthread=threading.Thread(target=work);self.indexthread.start();self.busy_changed()
+    def detect_folders(self,save=True):
+        found=detect_folders({'bo2':self.bo2,'cod4':self.cod4,'mw2':self.mw2});changes=[]
+        for key,label in (('bo2','BO2 Redacted'),('cod4','CoD4'),('mw2','MW2')):
+            if found[key]!=getattr(self,key):setattr(self,key,found[key]);changes.append(f'{label}: {found[key]}')
+        self.folders_changed=bool(changes)
+        if changes:self.log('Found game folders — '+'; '.join(changes))
+        if changes and save:self.save()
+        self.ui.changed('folders');return found
     def reindex(self):
+        """Build libraries from every installed game (one click). Pressing it again while building cancels."""
+        if self.building:self.build_cancel.set();self.set_status('Cancelling the library build…');return
         if not self.idle():return
-        cod4=self.cod4;mw2=self.mw2;bo2=self.bo2;self.set_status('Indexing character animations from your game folders…')
+        folders={'cod4':self.cod4,'mw2':self.mw2,'bo2':self.bo2};old=[dict(x) for x in self.catalog]
+        self.building=True;self.build_cancel.clear();self.set_status('Building libraries…')
+        def progress(done,total,text):self.post(lambda:self.set_status(f'Building libraries: {done}/{total} zones • {text}' if done<total else 'Building libraries: finishing…'))
         def work():
             try:
                 from library import index_libraries
-                catalog=index_libraries(cod4,mw2,ROOT/'library',TOOLS/'Unlinker.exe',self.log,lambda:self.closing,bo2)
-                if catalog is not None:
-                    for item in catalog:item['path']=str(Path(item['path']).relative_to(ROOT))
-                    write_atomic(ROOT/'library/catalog.json',json.dumps(catalog));self.post(self.read_library);self.post(self.refresh)
-            except Exception as e:self.log(str(e));self.post(lambda:self.set_status('Library scan stopped; see the log.'))
-            finally:self.post(self.busy_changed)
+                result=index_libraries(folders,ROOT/'library',TOOLS/'Unlinker.exe',self.log,lambda:self.closing or self.build_cancel.is_set(),progress)
+                if result is None:self.post(lambda:self.set_status('Library build cancelled. Build again to continue where it stopped.'));return
+                catalog,built,skipped=result
+                kept=[x for x in old if x['game'] in skipped] # A game that isn't installed keeps its existing clips.
+                for item in catalog+kept:item['path']=str(Path(item['path']).resolve().relative_to(ROOT))
+                write_atomic(ROOT/'library/catalog.json',json.dumps(catalog+kept))
+                self.post(lambda:self.after_build(old,built,skipped))
+            except Exception as e:self.log(str(e));self.post(lambda:self.set_status('Library build stopped: '+str(e)))
+            finally:self.post(self.build_finished)
         self.indexthread=threading.Thread(target=work);self.indexthread.start();self.busy_changed()
+    def build_finished(self):self.building=False;self.busy_changed()
+    def after_build(self,old,built,skipped):
+        """Re-point replacements at the rebuilt clip files, matched by game/zone/name."""
+        old_keys={x['path']:self.clip_key(x) for x in old};self.read_library();paths={self.clip_key(x):x['path'] for x in self.catalog}
+        moved=lambda path:paths.get(old_keys.get(path),path)
+        self.mapping={target:moved(path) for target,path in self.mapping.items()};self.replay_path=moved(self.replay_path) if self.replay_path else ''
+        self.save();self.refresh()
+        counts=', '.join(f"{game} {sum(x['game']==game for x in self.catalog):,}" for game in GAMES if any(x['game']==game for x in self.catalog))
+        self.set_status(f'Libraries built: {counts}.'+(f" Not installed, kept as they were: {', '.join(skipped)}." if skipped else ''))
     def enable_camera(self):
         try:
             path=install_camera(self.bo2)

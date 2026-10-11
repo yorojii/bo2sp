@@ -9,5 +9,6 @@
     "profile.json is unreadable; trying the backup copy.",
     "profile.json was unreadable; loaded the backup copy profile.json.bak."
   ],
-  "next_save_repairs_profile": true
+  "next_save_repairs_profile": true,
+  "wrong_folder_detected_and_saved": "F:\\Games\\Call of Duty Black Ops IIOLD"
 }

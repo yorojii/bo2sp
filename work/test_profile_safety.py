@@ -37,4 +37,10 @@ try:
     assert any('backup' in line for line in ui.logs),ui.logs;result['user_told_about_backup']=[l for l in ui.logs if 'backup' in l][:2]
     app.save();assert json.loads(profile.read_text())['bo2']==saved['bo2'];result['next_save_repairs_profile']=True
 finally:close(app,ui)
+# A profile from another PC (wrong game folders) starts up and saves the detected folder.
+data=json.loads(profile.read_text());data['bo2']='X:/not/a/game';profile.write_text(json.dumps(data))
+app,ui=new_core()
+try:
+    assert core.valid_folder('bo2',app.bo2) and json.loads(profile.read_text())['bo2']==app.bo2;result['wrong_folder_detected_and_saved']=app.bo2
+finally:close(app,ui)
 Path('work/profile_safety_validation.json').write_text(json.dumps(result,indent=2));print(json.dumps(result,indent=1))

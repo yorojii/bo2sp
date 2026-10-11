@@ -311,13 +311,14 @@ class Window(QtWidgets.QMainWindow):
         for key,name in (('bo2','BO2 Redacted'),('cod4','CoD4'),('mw2','MW2')):
             edit=QtWidgets.QLineEdit();browse=self.plain_button('Browse',lambda checked=False,e=edit:self.browse(e));self.folder_edits[key]=edit
             name_label=label(name,name='muted');name_label.setMinimumWidth(110);layout.addLayout(row(name_label,edit,browse))
-        layout.addLayout(row(self.plain_button('Save folders',self.save_folders),stretch_at=1))
+        layout.addLayout(row(self.plain_button('Save folders',self.save_folders),self.plain_button('Detect game folders',self.detect_folders),label('Finds a running BO2, Steam libraries and common install folders.',name='muted'),stretch_at=3))
         layout.addWidget(rule());layout.addWidget(label('LIBRARY AND GAME',name='section'))
         self.basics=self.action_button('load_basics','Load CoD4 basics',self.core.load_basics)
         importer=self.action_button('import_file','Import animation file…',self.core.import_clip)
-        self.reindex_button=self.action_button('refresh_libraries','Refresh source libraries',self.core.reindex)
+        self.reindex_button=self.action_button('refresh_libraries','Build libraries',self.core.reindex)
         camera=self.action_button('enable_camera','Install third person plugin',self.core.enable_camera)
         layout.addLayout(row(self.basics,importer,self.reindex_button,camera,stretch_at=4))
+        layout.addWidget(label('Build libraries extracts every installed game’s character animations in one go (missing games are skipped and keep their clips). Click again to cancel; building again resumes.',name='muted'))
         layout.addWidget(label('Closing BO2SPAnims restores BO2’s original animations.',name='muted'));layout.addStretch(1);return scroll
 
     # Actions needing widget state
@@ -327,6 +328,8 @@ class Window(QtWidgets.QMainWindow):
     def browse(self,edit):
         path=QtWidgets.QFileDialog.getExistingDirectory(self,'Choose folder',edit.text())
         if path:edit.setText(str(Path(path)))
+    def detect_folders(self):
+        found=self.core.detect_folders();self.core.set_status('Game folders: '+', '.join(f"{name} {'found' if found[key] else 'not found'}" for key,name in (('bo2','BO2'),('cod4','CoD4'),('mw2','MW2'))))
     def save_folders(self):self.core.set_folders(self.folder_edits['cod4'].text(),self.folder_edits['mw2'].text(),self.folder_edits['bo2'].text());self.core.set_status('Game folders saved.')
 
     # Refresh from core
@@ -352,7 +355,8 @@ class Window(QtWidgets.QMainWindow):
             elif field=='replay_note':self.replay_note.setText(core.replay_note)
             elif field=='snapshot':self.render_snapshot()
             elif field=='busy':
-                idle=core.idle();self.launch.setEnabled(idle);self.basics.setEnabled(idle);self.reindex_button.setEnabled(idle);self.changed('live')
+                idle=core.idle();self.launch.setEnabled(idle);self.basics.setEnabled(idle);self.reindex_button.setEnabled(idle or core.building)
+                self.reindex_button.setProperty('base','Cancel build' if core.building else 'Build libraries');self.render_hotkeys();self.changed('live')
             elif field=='folders':
                 for key,edit in self.folder_edits.items():edit.setText(getattr(core,key))
             elif field=='theme':self.apply_theme()
