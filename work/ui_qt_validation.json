@@ -18,7 +18,8 @@
   "glow_toggle": true,
   "watermark_opens_channel": "https://www.youtube.com/@Yorojiii",
   "library_search_and_select": 9,
-  "favorite_buttons": true,
+  "hover_star_favorites": true,
+  "unstar_in_favorites_tab": true,
   "appearance_switching": [
     "terminal",
     "glass (iOS)",

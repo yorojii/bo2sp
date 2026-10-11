@@ -92,9 +92,10 @@ The Replacements tab lists your choices. Removing an entry or clearing the
 selection restores those slots during the active session. An empty
 selection keeps the original animations. Choices are saved between
 launches. You can mix clips from any library.
-Favorites: select a clip in any library tab and click "★ Favorite"; the
-Favorites tab lists all starred clips, filterable by game, and works like
-the other tabs. Click "Remove favorite" there to unstar.
+Favorites: hover the first column of any clip list to reveal an outlined
+star and click it; it fills in and the clip is added to the Favorites tab
+(filterable by game; it works like the other tabs). Click a filled star,
+in any tab, to remove it.
 Saved sets: in Replacements, "Save set…" stores every current replacement
 under a name. Pick a set and "Load set" to swap it in (it replaces the
 current replacements and applies live if a match is running); "Delete set"

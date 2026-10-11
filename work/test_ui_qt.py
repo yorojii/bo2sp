@@ -40,8 +40,10 @@ try:
     window.watermark.mousePressEvent(None);assert opened==['https://www.youtube.com/@Yorojiii'],opened;result['watermark_opens_channel']=opened[0]
     lib=window.libraries['CoD4'];lib.query.setText('mantle');pump(0.05);assert 0<lib.model.rowCount()<50;lib.table.selectRow(0);pump(0.05)
     assert c.replay_path==c.catalog[lib.model.rows[0]]['path'];result['library_search_and_select']=lib.model.rowCount()
-    window.buttons['favorite:CoD4'].click();pump(0.05);assert window.libraries['Favorites'].model.rowCount()==1
-    window.libraries['Favorites'].table.selectRow(0);window.buttons['favorite:Favorites'].click();pump(0.05);assert window.libraries['Favorites'].model.rowCount()==0;result['favorite_buttons']=True
+    lib.model.set_hover(0);assert lib.model.data(lib.model.index(0,0))=='☆';lib.model.set_hover(-1);assert lib.model.data(lib.model.index(0,0))==''
+    lib.toggle_star(0);pump(0.05);assert window.libraries['Favorites'].model.rowCount()==1 and lib.model.data(lib.model.index(0,0))=='★'
+    assert 'favorite:CoD4' not in window.buttons;result['hover_star_favorites']=True
+    window.libraries['Favorites'].toggle_star(0);pump(0.05);assert window.libraries['Favorites'].model.rowCount()==0;result['unstar_in_favorites_tab']=True
     for style in ('glass','android','terminal'): # Each appearance applies, keeps the fixed size, and saves.
         window.style_buttons[style].click();pump(0.2)
         assert c.theme['style']==style and window.style_buttons[style].isChecked() and window.width()<=1240,(style,window.width())

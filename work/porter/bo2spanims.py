@@ -207,16 +207,25 @@ class Poster(QtCore.QObject):
 
 class ClipModel(QtCore.QAbstractTableModel):
     HEADERS=('★','Source animation','Scene / zone','Sec','Loop','Bones')
-    def __init__(self,core,game):super().__init__();self.core=core;self.game=game;self.rows=[]
-    def set_rows(self,rows):self.beginResetModel();self.rows=rows;self.endResetModel()
+    def __init__(self,core,game):super().__init__();self.core=core;self.game=game;self.rows=[];self.hover=-1
+    def set_rows(self,rows):self.beginResetModel();self.rows=rows;self.hover=-1;self.endResetModel()
+    def set_hover(self,row):
+        """The row under the mouse shows an outlined star to click."""
+        if row==self.hover:return
+        old,self.hover=self.hover,row
+        for changed in (old,row):
+            if 0<=changed<len(self.rows):self.dataChanged.emit(self.index(changed,0),self.index(changed,0))
     def rowCount(self,parent=QtCore.QModelIndex()):return 0 if parent.isValid() else len(self.rows)
     def columnCount(self,parent=QtCore.QModelIndex()):return 0 if parent.isValid() else 6
     def headerData(self,section,orientation,role=Qt.DisplayRole):
         if role==Qt.DisplayRole and orientation==Qt.Horizontal:return ('★','Source animation','Game · zone' if self.game=='Favorites' else 'Scene / zone','Sec','Loop','Bones')[section]
     def data(self,index,role=Qt.DisplayRole):
-        if role!=Qt.DisplayRole or not index.isValid():return None
-        item=self.core.catalog[self.rows[index.row()]];column=index.column()
-        if column==0:return '★' if self.core.clip_key(item) in self.core.favorites else ''
+        if not index.isValid():return None
+        item=self.core.catalog[self.rows[index.row()]];column=index.column();starred=self.core.clip_key(item) in self.core.favorites
+        if column==0 and role==Qt.ToolTipRole:return 'Remove from favorites' if starred else 'Add to favorites'
+        if column==0 and role==Qt.TextAlignmentRole:return int(Qt.AlignCenter)
+        if role!=Qt.DisplayRole:return None
+        if column==0:return '★' if starred else '☆' if index.row()==self.hover else ''
         if column==1:return item['name']
         if column==2:return f"{item['game']} · {item['zone']}" if self.game=='Favorites' else item['zone']
         if column==3:return f"{item['frames']/item['fps']:.2f}"
@@ -252,13 +261,27 @@ class LibraryTab(QtWidgets.QWidget):
         header=self.table.horizontalHeader();header.setSectionResizeMode(1,QtWidgets.QHeaderView.Stretch);header.setHighlightSections(False);header.setDefaultAlignment(Qt.AlignLeft|Qt.AlignVCenter)
         for column,width in ((0,28),(2,340 if game=='Favorites' else 230),(3,60),(4,50),(5,56)):self.table.setColumnWidth(column,width)
         self.table.selectionModel().currentRowChanged.connect(lambda current,previous:self.core.choose_clip(self.selected()))
-        self.table.doubleClicked.connect(lambda index:self.core.use_clip(self.selected()))
+        self.table.doubleClicked.connect(lambda index:index.column()!=0 and self.core.use_clip(self.selected()))
+        self.table.setMouseTracking(True);self.table.viewport().installEventFilter(self) # Hover and click the star column to favorite.
         self.slot=window.slot_box()
         use=window.plain_button('Use selected clip',lambda:self.core.use_clip(self.selected()))
-        favorite=window.action_button('favorite:'+game,'Remove favorite' if game=='Favorites' else '★ Favorite',lambda:self.core.toggle_favorite(self.selected()))
         layout=QtWidgets.QVBoxLayout(self);layout.setContentsMargins(0,6,0,0)
         layout.addLayout(row(self.query,label('Game' if game=='Favorites' else 'Scene / zone',name='muted'),self.zone));layout.addWidget(self.count);layout.addWidget(self.table,1)
-        layout.addLayout(row(label('BO2 slot',name='muted'),self.slot,use,favorite,stretch_at=4))
+        layout.addLayout(row(label('BO2 slot',name='muted'),self.slot,use,stretch_at=3))
+    def eventFilter(self,watched,event):
+        kind=event.type()
+        if kind==QtCore.QEvent.MouseMove:
+            index=self.table.indexAt(event.position().toPoint());self.model.set_hover(index.row() if index.isValid() else -1)
+            self.table.viewport().setCursor(Qt.PointingHandCursor if index.isValid() and index.column()==0 else Qt.ArrowCursor)
+        elif kind==QtCore.QEvent.Leave:self.model.set_hover(-1);self.table.viewport().unsetCursor()
+        elif kind in (QtCore.QEvent.MouseButtonPress,QtCore.QEvent.MouseButtonDblClick) and event.button()==Qt.LeftButton:
+            index=self.table.indexAt(event.position().toPoint())
+            if index.isValid() and index.column()==0:
+                if kind==QtCore.QEvent.MouseButtonPress:self.toggle_star(index.row())
+                return True # The star click doesn't change the selection or apply the clip.
+        return False
+    def toggle_star(self,row):
+        if 0<=row<len(self.model.rows):self.core.toggle_favorite(self.model.rows[row])
     def selected(self):
         index=self.table.currentIndex();return self.model.rows[index.row()] if index.isValid() and index.row()<len(self.model.rows) else None
     def reload_zones(self):
@@ -266,7 +289,7 @@ class LibraryTab(QtWidgets.QWidget):
         self.zone.setCurrentText(current if current in ['All',*self.core.zones(self.game)] else 'All');self.zone.blockSignals(False);self.render()
     def render(self):
         rows=self.core.clips(self.game,self.query.text(),self.zone.currentText() or 'All');self.model.set_rows(rows)
-        self.count.setText(f'{len(rows):,} favorite clips • ★ Favorite in any library tab adds a clip here' if self.game=='Favorites' else f'{len(rows):,} character clips • choose a looping slot for movement or a death slot for a death clip')
+        self.count.setText(f'{len(rows):,} favorite clips • click the ★ beside a clip to remove it; hover the ☆ column in any library to add one' if self.game=='Favorites' else f'{len(rows):,} character clips • hover the first column and click ☆ to favorite • looping slots for movement, death slots for deaths')
 
 class TrafficLight(QtWidgets.QAbstractButton):
     """macOS-style window button: a colored dot that shows its glyph while the group is hovered."""
