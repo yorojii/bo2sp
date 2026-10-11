@@ -152,13 +152,13 @@ class TrafficLight(QtWidgets.QAbstractButton):
     """macOS-style window button: a colored dot that shows its glyph while the group is hovered."""
     COLORS={'close':('#FF5F57','#E0443E'),'minimize':('#FEBC2E','#DEA123'),'maximize':('#28C840','#1AAB29')}
     def __init__(self,kind,group):
-        super().__init__();self.kind=kind;self.group=group;self.setFixedSize(14,14);self.setFocusPolicy(Qt.NoFocus)
+        super().__init__();self.kind=kind;self.group=group;self.setFixedSize(16,16);self.setFocusPolicy(Qt.NoFocus) # Even sizes stay on whole pixels at 125/150/200% scaling.
         self.setToolTip({'close':'Close','minimize':'Minimize','maximize':'Maximize'}[kind])
     def paintEvent(self,event):
         fill,edge=self.COLORS[self.kind];painter=QtGui.QPainter(self);painter.setRenderHint(QtGui.QPainter.Antialiasing)
-        painter.setPen(QtGui.QPen(QtGui.QColor(edge),0.8));painter.setBrush(QtGui.QColor(edge if self.isDown() else fill));painter.drawEllipse(QtCore.QRectF(1,1,12,12))
+        painter.setPen(QtGui.QPen(QtGui.QColor(edge),0.8));painter.setBrush(QtGui.QColor(edge if self.isDown() else fill));painter.drawEllipse(QtCore.QRectF(2,2,12,12))
         if self.group.hovered:
-            painter.setPen(QtGui.QPen(QtGui.QColor(0,0,0,150),1.3,Qt.SolidLine,Qt.RoundCap));c=7.0
+            painter.setPen(QtGui.QPen(QtGui.QColor(0,0,0,150),1.3,Qt.SolidLine,Qt.RoundCap));c=8.0
             if self.kind=='close':painter.drawLine(QtCore.QPointF(c-2.6,c-2.6),QtCore.QPointF(c+2.6,c+2.6));painter.drawLine(QtCore.QPointF(c-2.6,c+2.6),QtCore.QPointF(c+2.6,c-2.6))
             elif self.kind=='minimize':painter.drawLine(QtCore.QPointF(c-3,c),QtCore.QPointF(c+3,c))
             else:painter.drawLine(QtCore.QPointF(c-3,c),QtCore.QPointF(c+3,c));painter.drawLine(QtCore.QPointF(c,c-3),QtCore.QPointF(c,c+3))
@@ -167,7 +167,7 @@ class TrafficLight(QtWidgets.QAbstractButton):
 class TrafficLights(QtWidgets.QWidget):
     def __init__(self,window):
         super().__init__();self.hovered=False;self.setStyleSheet('background:transparent')
-        box=QtWidgets.QHBoxLayout(self);box.setContentsMargins(10,0,0,0);box.setSpacing(8);self.lights={}
+        box=QtWidgets.QHBoxLayout(self);box.setContentsMargins(10,0,0,0);box.setSpacing(6);box.setAlignment(Qt.AlignVCenter);self.lights={}
         for kind,action in (('maximize',window.toggle_maximized),('minimize',window.showMinimized),('close',window.close)): # Reversed: close sits at the far right.
             light=TrafficLight(kind,self);light.clicked.connect(action);box.addWidget(light);self.lights[kind]=light
     def enterEvent(self,event):self.hovered=True;self.update_lights()
@@ -236,7 +236,7 @@ class Window(QtWidgets.QMainWindow):
         self.launch=self.action_button('launch_apply','▶ Launch BO2 && apply',self.core.start);self.stopbutton=self.action_button('stop_restore','■ Stop && restore',self.core.stop)
         self.lights=TrafficLights(self);self.titlebar=TitleBar(self)
         self.titlebar.setLayout(row(title,label('CoD4 / MW2 / BO2 SP / Zombies → BO2 Redacted',name='muted'),self.bo2_chip,self.import_chip,self.launch,self.stopbutton,self.lights,stretch_at=2))
-        layout.addWidget(self.titlebar)
+        self.titlebar.layout().setAlignment(self.lights,Qt.AlignVCenter);layout.addWidget(self.titlebar)
         self.card=QtWidgets.QFrame();self.card.setObjectName('card');self.glow(self.card);card=QtWidgets.QVBoxLayout(self.card);card.setContentsMargins(14,10,14,10);card.setSpacing(6)
         self.follow_label=label();self.detected=label();self.replay_note=label()
         heading=label('LIVE TARGET');heading.setStyleSheet('font-weight:bold;letter-spacing:1px')
