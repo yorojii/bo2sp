@@ -417,6 +417,16 @@ class Window(QtWidgets.QMainWindow):
         if sys.platform=='win32' and not getattr(self,'styled',False): # Frameless windows still minimize and maximize from the taskbar.
             self.styled=True;hwnd=int(self.winId());user=ctypes.windll.user32;style=user.GetWindowLongW(hwnd,-16)
             user.SetWindowLongW(hwnd,-16,style|0x00020000|0x00010000|0x00080000) # WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_SYSMENU, no caption.
+            self.set_native_icons(hwnd)
+    def set_native_icons(self,hwnd):
+        """Put the logo on the window and its window class too; frameless windows can show the class icon on the taskbar."""
+        user=ctypes.windll.user32;user.LoadImageW.restype=ctypes.c_void_p;user.LoadImageW.argtypes=[ctypes.c_void_p,ctypes.c_wchar_p,ctypes.c_uint,ctypes.c_int,ctypes.c_int,ctypes.c_uint]
+        user.SetClassLongPtrW.argtypes=[ctypes.c_void_p,ctypes.c_int,ctypes.c_void_p];user.SendMessageW.argtypes=[ctypes.c_void_p,ctypes.c_uint,ctypes.c_size_t,ctypes.c_void_p]
+        path=str(ASSETS/'app.ico')
+        big=user.LoadImageW(None,path,1,user.GetSystemMetrics(11),user.GetSystemMetrics(12),0x10) # IMAGE_ICON, SM_CXICON/SM_CYICON, LR_LOADFROMFILE
+        small=user.LoadImageW(None,path,1,user.GetSystemMetrics(49),user.GetSystemMetrics(50),0x10) # SM_CXSMICON/SM_CYSMICON
+        if big:user.SetClassLongPtrW(hwnd,-14,big);user.SendMessageW(hwnd,0x80,1,big) # GCLP_HICON, WM_SETICON ICON_BIG
+        if small:user.SetClassLongPtrW(hwnd,-34,small);user.SendMessageW(hwnd,0x80,0,small) # GCLP_HICONSM, ICON_SMALL
     def closeEvent(self,event):
         if not self.closing:self.closing=True;self.core.close();self.timer.stop();self.status.setText('Restoring original animations and closing…')
         if self.core.finished():event.accept()
@@ -428,7 +438,8 @@ def main():
     if not handle:raise OSError(ctypes.get_last_error(),'Cannot initialize importer')
     duplicate=ctypes.get_last_error()==183
     try:
-        if sys.platform=='win32':ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('Yoroji.BO2SPAnims') # Taskbar uses our icon, not python's.
+        if sys.platform=='win32' and not getattr(sys,'frozen',False): # From source, group under our icon instead of python.exe's.
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('Yoroji.BO2SPAnims')
         app=QtWidgets.QApplication(sys.argv);app.setApplicationName(APP_NAME);app.setWindowIcon(QtGui.QIcon(str(ASSETS/'app.ico')))
         if duplicate:QtWidgets.QMessageBox.information(None,'Already open','BO2SPAnims is already running. Use the existing window.');return
         window=Window();window.show();app.exec()
