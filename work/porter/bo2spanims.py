@@ -61,6 +61,7 @@ QFrame#card QLabel,QFrame#card QCheckBox{{color:{n['ink']};background:transparen
 QFrame#card QPushButton{{color:{n['ink']};border:1px solid {n['ink']}}}
 QFrame#card QPushButton:checked{{background:{n['ink']};color:{n['acc']}}}
 QFrame#card QFrame#rule{{background:{n['ink']}}}
+QFrame#card QWidget#cardrow,QFrame#card QSlider{{background:transparent}}
 QFrame#card QSlider::groove:horizontal{{height:2px;background:{n['ink']}}}
 QFrame#card QSlider::handle:horizontal{{background:{n['ink']};width:12px;margin:-6px 0;border-radius:2px}}
 QFrame#card QCheckBox::indicator{{border-color:{n['ink']}}}
@@ -176,6 +177,7 @@ QFrame#card QLabel,QFrame#card QCheckBox{{color:#000000;background:transparent}}
 QFrame#card QPushButton{{color:#000000;background:{n['mid']};border:2px outset #ffffff}}
 QFrame#card QPushButton:checked{{background:#000000;color:{n['acc']}}}
 QFrame#card QFrame#rule{{background:#000000}}
+QFrame#card QWidget#cardrow,QFrame#card QSlider{{background:transparent}}
 QFrame#card QSlider::groove:horizontal{{height:6px;background:#000000}}
 QFrame#card QSlider::handle:horizontal{{background:{n['mid']};border:2px outset #ffffff;width:10px;margin:-6px 0}}
 """
@@ -489,7 +491,7 @@ class Window(QtWidgets.QMainWindow):
         self.movement_button=self.plain_button('Movement',lambda checked:self.movement_panel.setVisible(checked),checkable=True)
         self.movement_button.setToolTip('Run speed, sprint speed and jump height in matches you host. Not timescale: animations play at normal speed.')
         card.addLayout(row(self.apply_button,self.lock,self.freelook_button,self.movement_button,stretch_at=4,spacing=10))
-        self.movement_panel=QtWidgets.QWidget();panel=QtWidgets.QHBoxLayout(self.movement_panel);panel.setContentsMargins(0,4,0,0);panel.setSpacing(10)
+        self.movement_panel=QtWidgets.QWidget();self.movement_panel.setObjectName('cardrow');panel=QtWidgets.QHBoxLayout(self.movement_panel);panel.setContentsMargins(0,4,0,0);panel.setSpacing(10)
         self.movement_sliders={}
         for key,name in (('speed','Speed'),('sprint','Sprint'),('jump','Jump')):
             low,high=MOVEMENT_LIMITS[key];slider=QtWidgets.QSlider(Qt.Horizontal);slider.setRange(low,high);slider.setSingleStep(5);slider.setPageStep(25)
