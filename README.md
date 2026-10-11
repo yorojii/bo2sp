@@ -49,4 +49,8 @@ Entry point: `work/porter/bo2spanims.py`. Library extraction uses [OpenAssetTool
 - Made by [Yoroji](https://www.youtube.com/@Yorojiii)
 - [OpenAssetTools](https://github.com/Laupetin/OpenAssetTools), [Greyhound](https://github.com/Scobalula/Greyhound), and [T6SDK](https://github.com/Amyst82/T6SDK) for format and engine references
 
+## License
+
+[GPL-3.0](LICENSE). Bundled OpenAssetTools is also GPL-3.0.
+
 Animation data stays on your machine and is extracted from games you own. None is included in this repository.
