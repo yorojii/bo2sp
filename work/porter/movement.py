@@ -1,17 +1,20 @@
-"""Movement sliders for the attached BO2 process (GPL-3.0-or-later).
+"""Movement speed slider for the attached BO2 process (GPL-3.0-or-later).
 
-Scales three movement dvars as a percentage of BO2's defaults: g_speed (run/walk speed),
-player_sprintSpeedScale (sprint, on top of g_speed) and jump_height. Not timescale: the game
-clock, animations and everything else run at normal speed. Only those three dvar values are
-written; the game's own values are read on attach and written back when the sliders return
-to 100% or the tool closes. They are server dvars, so they take effect in matches you host.
+Scales g_speed (walk/run speed, also the base for sprinting) as a percentage of the game's own
+value. Not timescale: the game clock, animations and everything else run at normal speed. Only
+that dvar value is written; the game's value is read on attach and written back when the slider
+returns to 100% or the tool closes. It's a server dvar, so it takes effect in matches you host.
+
+Sprint (player_sprintSpeedScale) and jump (jump_height) were tried and dropped on 2026-10-11:
+those are synced bg dvars the movement code doesn't pick up from a memory write, and BO2 MP
+ignores jump_height even when set from the console.
 """
 import ctypes,struct,time
 from freelook import kernel,DVAR_POOL,DVAR_COUNT,DVAR_SIZE,DVAR_FLOAT
 
 DVAR_INT=6
 # key, dvar, type, (lowest, highest) percent.
-SETTINGS=(('speed','g_speed',DVAR_INT,(10,300)),('sprint','player_sprintSpeedScale',DVAR_FLOAT,(50,300)),('jump','jump_height',DVAR_FLOAT,(0,500)))
+SETTINGS=(('speed','g_speed',DVAR_INT,(10,300)),)
 LIMITS={key:limits for key,name,kind,limits in SETTINGS}
 def clamp_percent(key,value):
     low,high=LIMITS[key]
@@ -19,7 +22,7 @@ def clamp_percent(key,value):
     except (TypeError,ValueError):return 100
 
 class MovementDvars:
-    """Finds the three dvars in one BO2 process and reads/writes their current values."""
+    """Finds the movement dvars in one BO2 process and reads/writes their current values."""
     def __init__(self,pid):
         self.pid=pid;self.handle=kernel.OpenProcess(0x438,False,pid) # query, VM read/write/operation.
         if not self.handle:raise OSError(ctypes.get_last_error(),'Cannot open BO2 process')

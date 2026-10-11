@@ -1,9 +1,7 @@
 {
   "untouched_at_100": true,
   "scaled": {
-    "speed": 285,
-    "sprint": 3.0,
-    "jump": 19.5
+    "speed": 285
   },
   "reapplied_after_game_reset": true,
   "restored_exactly": true,
@@ -12,8 +10,6 @@
   "error_reported_once": "g_speed not found in this BO2 build",
   "clamped": true,
   "profile_round_trip": {
-    "speed": 100,
-    "sprint": 130,
-    "jump": 100
+    "speed": 130
   }
 }

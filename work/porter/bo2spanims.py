@@ -489,15 +489,15 @@ class Window(QtWidgets.QMainWindow):
         self.freelook_button.setContextMenuPolicy(Qt.CustomContextMenu);self.freelook_button.customContextMenuRequested.connect(lambda pos:self.hotkey_menu(self.freelook_button,'freelook'))
         self.freelook_button.setToolTip('Hold the key in BO2 to orbit the third-person camera. Click to turn on or off; right-click to change the key.')
         self.movement_button=self.plain_button('Movement',lambda checked:self.movement_panel.setVisible(checked),checkable=True)
-        self.movement_button.setToolTip('Run speed, sprint speed and jump height in matches you host. Not timescale: animations play at normal speed.')
+        self.movement_button.setToolTip('Movement speed in matches you host. Not timescale: animations play at normal speed.')
         card.addLayout(row(self.apply_button,self.lock,self.freelook_button,self.movement_button,stretch_at=4,spacing=10))
         self.movement_panel=QtWidgets.QWidget();self.movement_panel.setObjectName('cardrow');panel=QtWidgets.QHBoxLayout(self.movement_panel);panel.setContentsMargins(0,4,0,0);panel.setSpacing(10)
         self.movement_sliders={}
-        for key,name in (('speed','Speed'),('sprint','Sprint'),('jump','Jump')):
+        for key,name in (('speed','Speed'),):
             low,high=MOVEMENT_LIMITS[key];slider=QtWidgets.QSlider(Qt.Horizontal);slider.setRange(low,high);slider.setSingleStep(5);slider.setPageStep(25)
             slider.setFocusPolicy(Qt.NoFocus);slider.setMinimumWidth(170);value=label();value.setMinimumWidth(44)
             slider.valueChanged.connect(lambda v,key=key:(self.core.set_movement(save=False,**{key:v}),self.save_timer.start(400)))
-            slider.setToolTip({'speed':'Walk and run speed (g_speed).','sprint':'Sprint speed on top of run speed.','jump':'Jump height.'}[key]+' 100% is the game default.')
+            slider.setToolTip('Walk, run and sprint speed (g_speed). 100% is the game default.')
             self.movement_sliders[key]=(slider,value);panel.addWidget(label(name));panel.addWidget(slider);panel.addWidget(value)
         panel.addWidget(self.plain_button('Reset',self.core.reset_movement));panel.addStretch(1)
         self.movement_panel.hide();card.addWidget(self.movement_panel);layout.addWidget(self.card)
