@@ -168,7 +168,7 @@ class TrafficLights(QtWidgets.QWidget):
     def __init__(self,window):
         super().__init__();self.hovered=False;self.setStyleSheet('background:transparent')
         box=QtWidgets.QHBoxLayout(self);box.setContentsMargins(10,0,0,0);box.setSpacing(8);self.lights={}
-        for kind,action in (('close',window.close),('minimize',window.showMinimized),('maximize',window.toggle_maximized)):
+        for kind,action in (('maximize',window.toggle_maximized),('minimize',window.showMinimized),('close',window.close)): # Reversed: close sits at the far right.
             light=TrafficLight(kind,self);light.clicked.connect(action);box.addWidget(light);self.lights[kind]=light
     def enterEvent(self,event):self.hovered=True;self.update_lights()
     def leaveEvent(self,event):self.hovered=False;self.update_lights()
