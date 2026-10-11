@@ -473,7 +473,7 @@ class Window(QtWidgets.QMainWindow):
         self.libraries={}
         for game in ('Favorites',*GAMES):
             tab=LibraryTab(self,game);self.libraries[game]=tab;self.tabs.addTab(tab,'★ Favorites' if game=='Favorites' else game)
-        self.tabs.addTab(self.build_replacements(),'Replacements');self.tabs.addTab(self.build_debug(),'Debug');self.tabs.addTab(self.build_settings(),'Settings')
+        self.tabs.addTab(self.build_replacements(),'Replacements');self.tabs.addTab(self.build_debug(),'Debug');self.tabs.addTab(self.build_settings(),'Settings');self.tabs.addTab(self.build_about(),'About')
         layout.addWidget(rule())
         self.status=label();self.status.setWordWrap(True);self.hints=label('',name='muted');self.watermark=Watermark(self)
         footer=row(self.status,self.hints,self.watermark,spacing=16);footer.setStretch(0,1);layout.addLayout(footer)
@@ -506,6 +506,29 @@ class Window(QtWidgets.QMainWindow):
         use=self.action_button('use_highlighted','Use highlighted target',self.use_highlighted)
         layout.addLayout(row(use,label('Choose a Body layer for a full-character animation.',name='muted'),self.live_label,stretch_at=2))
         layout.addWidget(label('LOG',name='section'));self.log=QtWidgets.QPlainTextEdit();self.log.setReadOnly(True);layout.addWidget(self.log,1);return page
+    def build_about(self):
+        scroll=QtWidgets.QScrollArea();scroll.setWidgetResizable(True);page=QtWidgets.QWidget();scroll.setWidget(page)
+        layout=QtWidgets.QVBoxLayout(page);layout.setContentsMargins(0,6,12,0);layout.setSpacing(8)
+        def text(words,name=None):
+            widget=label(words,name=name);widget.setWordWrap(True);layout.addWidget(widget);return widget
+        layout.addWidget(label('BO2SPAnims',name='title'))
+        text('Animations from other Call of Duty games in Black Ops II Redacted multiplayer, applied live while you play.',name='muted')
+        layout.addWidget(label('WHAT IT DOES',name='section'))
+        text('Pick a clip from CoD4, MW2 single-player actors, BO2 single-player or BO2 Zombies, choose the BO2 body animation it replaces, '
+             'and your character plays it straight away. Live target follows the animation you’re playing right now, Apply anim restarts it '
+             'on demand, and Freelook orbits the third-person camera. Built for staging scenes in custom matches and filming them in Theater '
+             'with t6mvm.')
+        layout.addWidget(label('HOW IT WORKS',name='section'))
+        text('Clips are extracted from your own game installs and converted to BO2’s format, then swapped into the running game’s memory. '
+             'Nothing on disk changes: Stop & restore, closing the tool, or restarting BO2 brings the original animations back. '
+             'A replacement applies to every character using that slot, and shows in Theater while the tool is open.')
+        layout.addWidget(label('CREDITS',name='section'))
+        text('Made by Yoroji.')
+        text('OpenAssetTools (asset extraction), Greyhound and T6SDK (format and engine references).',name='muted')
+        layout.addLayout(row(self.plain_button('Yoroji on YouTube',lambda:QtGui.QDesktopServices.openUrl(QtCore.QUrl(CHANNEL_URL))),stretch_at=1))
+        layout.addWidget(label('LICENSE',name='section'))
+        text('Free software under the GNU GPL-3.0. Animation data comes from games you own and stays on your machine.',name='muted')
+        layout.addStretch(1);return scroll
     def build_settings(self):
         scroll=QtWidgets.QScrollArea();scroll.setWidgetResizable(True);page=QtWidgets.QWidget();scroll.setWidget(page)
         layout=QtWidgets.QVBoxLayout(page);layout.setContentsMargins(0,6,12,0);layout.setSpacing(8)
