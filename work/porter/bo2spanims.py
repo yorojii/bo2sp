@@ -3,7 +3,7 @@
 The window is a retro-terminal theme built from one HSL accent color (Settings tab).
 All behavior lives in core.Core; this module only draws it and forwards user input.
 """
-import ctypes,sys
+import ctypes,sys,threading,time
 from pathlib import Path
 from ctypes import wintypes
 from PySide6 import QtCore,QtGui,QtWidgets
@@ -333,6 +333,51 @@ class TitleBar(QtWidgets.QWidget):
     def mouseDoubleClickEvent(self,event):
         if event.button()==Qt.LeftButton:self.window_.toggle_maximized()
 
+class BackdropGrabber(QtCore.QObject):
+    """Background thread that copies the screen behind the iOS window as often as the monitor refreshes (GDI's screen
+    copy alone is ~6.5 ms, so ~150 fps at most), shrinks it to a quarter, and hands the newest frame to the UI thread. Unchanged
+    frames are dropped, and frames the UI hasn't picked up yet are replaced rather than queued."""
+    frame=QtCore.Signal()
+    def __init__(self,hwnd):
+        super().__init__();self.hwnd=hwnd;self.interval=1/60;self.latest=None;self.pending=False;self.key=None
+        self.lock=threading.Lock();self.stop_event=threading.Event()
+        self.thread=threading.Thread(target=self.run,name='backdrop',daemon=True);self.thread.start()
+    def stop(self):self.stop_event.set()
+    def take(self):
+        with self.lock:image,self.latest,self.pending=self.latest,None,False
+        return image
+    def run(self):
+        u,g=ctypes.windll.user32,ctypes.windll.gdi32
+        u.GetDC.restype=g.CreateCompatibleDC.restype=g.CreateCompatibleBitmap.restype=g.SelectObject.restype=ctypes.c_void_p
+        class Header(ctypes.Structure):_fields_=[('size',ctypes.c_uint32),('width',ctypes.c_int32),('height',ctypes.c_int32),('planes',ctypes.c_uint16),('bits',ctypes.c_uint16),
+                                                 ('compression',ctypes.c_uint32),('image_size',ctypes.c_uint32),('xppm',ctypes.c_int32),('yppm',ctypes.c_int32),('used',ctypes.c_uint32),('important',ctypes.c_uint32)]
+        hwnd=ctypes.c_void_p(self.hwnd);rect=wintypes.RECT();V=ctypes.c_void_p;size=None;screen=memory=bitmap=old=None
+        def release():
+            if memory:g.SelectObject(V(memory),V(old));g.DeleteObject(V(bitmap));g.DeleteDC(V(memory))
+            if screen:u.ReleaseDC(None,V(screen))
+        try:
+            while not self.stop_event.is_set():
+                start=time.perf_counter()
+                if u.IsIconic(hwnd) or not u.IsWindowVisible(hwnd) or not u.GetWindowRect(hwnd,ctypes.byref(rect)):self.stop_event.wait(0.1);continue
+                width,height=rect.right-rect.left,rect.bottom-rect.top;half=(max(1,width//2),max(1,height//2))
+                if width>0 and height>0:
+                    if half!=size: # Reuse the DCs and bitmap until the window size changes.
+                        release();size=half;screen=u.GetDC(None);memory=g.CreateCompatibleDC(V(screen));bitmap=g.CreateCompatibleBitmap(V(screen),*half)
+                        old=g.SelectObject(V(memory),V(bitmap));g.SetStretchBltMode(V(memory),3) # COLORONCOLOR: fast; the blur hides the sampling.
+                        header=Header(ctypes.sizeof(Header),half[0],-half[1],1,32,0,0,0,0,0,0);pixels=ctypes.create_string_buffer(half[0]*half[1]*4)
+                    # Copy at half size straight from the screen; our window is excluded from capture.
+                    g.StretchBlt(V(memory),0,0,half[0],half[1],V(screen),rect.left,rect.top,width,height,0x00CC0020)
+                    if g.GetDIBits(V(memory),V(bitmap),0,half[1],pixels,ctypes.byref(header),0):
+                        shot=QtGui.QImage(pixels,half[0],half[1],half[0]*4,QtGui.QImage.Format_RGB32)
+                        small=shot.scaled(max(1,width//4),max(1,height//4),Qt.IgnoreAspectRatio,Qt.SmoothTransformation) # A copy, so pixels can be reused.
+                        key=bytes(small.scaled(max(1,width//24),max(1,height//24)).constBits())
+                        if key!=self.key:
+                            self.key=key
+                            with self.lock:self.latest=small;send=not self.pending;self.pending=True
+                            if send:self.frame.emit()
+                self.stop_event.wait(max(0.001,self.interval-(time.perf_counter()-start)))
+        finally:release()
+
 def gaussian_blur(image,radius):
     """A real Gaussian blur of a QImage (via QGraphicsBlurEffect), as a QPixmap. Edges are padded so they don't darken."""
     pad=radius*2;source=QtGui.QImage(image.width()+pad*2,image.height()+pad*2,QtGui.QImage.Format_ARGB32_Premultiplied)
@@ -634,28 +679,23 @@ class Window(QtWidgets.QMainWindow):
             self.setMask(QtGui.QRegion(outline.toFillPolygon().toPolygon()))
         else:self.clearMask()
     def resizeEvent(self,event):super().resizeEvent(event);self.built and self.update_shape()
-    def moveEvent(self,event):super().moveEvent(event);getattr(self,'self_blur',False) and self.capture_backdrop() # Keep the blur under the window while dragging.
+    def moveEvent(self,event):super().moveEvent(event);getattr(self,'grabber',None) and self.set_grab_rate() # It may now be on another monitor.
     def set_self_blur(self,on):
-        """iOS snapshots and blurs what's behind the window itself (~10 fps, and on every move). The window is
-        excluded from screen capture meanwhile, or it would see itself."""
+        """iOS snapshots and blurs what's behind the window itself, at the monitor's refresh rate (BackdropGrabber).
+        The window is excluded from screen capture meanwhile, or it would see itself."""
         if getattr(self,'self_blur',None)==on:return
         self.self_blur=on
-        if not on:self.backdrop=None;self.backdrop_key=None
         if sys.platform=='win32' and self.isVisible():
             ctypes.windll.user32.SetWindowDisplayAffinity(ctypes.c_void_p(int(self.winId())),0x11 if on else 0) # WDA_EXCLUDEFROMCAPTURE / WDA_NONE
-        if not hasattr(self,'backdrop_timer'):self.backdrop_timer=QtCore.QTimer(self);self.backdrop_timer.timeout.connect(self.capture_backdrop)
-        self.backdrop_timer.start(100) if on else self.backdrop_timer.stop()
-        if on:self.capture_backdrop()
-    def capture_backdrop(self):
-        if not self.self_blur or not self.isVisible() or self.isMinimized():return
-        frame=self.frameGeometry();screen=QtGui.QGuiApplication.screenAt(frame.center()) or QtGui.QGuiApplication.primaryScreen();origin=screen.geometry().topLeft()
-        shot=screen.grabWindow(0,frame.x()-origin.x(),frame.y()-origin.y(),frame.width(),frame.height()).toImage()
-        if shot.isNull():return
-        tiny=shot.scaled(max(1,frame.width()//24),max(1,frame.height()//24),Qt.IgnoreAspectRatio,Qt.SmoothTransformation) # Change check only.
-        key=bytes(tiny.constBits()) if hasattr(tiny,'constBits') else None
-        if key is not None and key==getattr(self,'backdrop_key',None):return # Nothing behind changed.
-        self.backdrop_key=key;self.backdrop=gaussian_blur(shot.scaled(max(1,frame.width()//4),max(1,frame.height()//4),Qt.IgnoreAspectRatio,Qt.SmoothTransformation),10)
-        self.centralWidget().update()
+        if getattr(self,'grabber',None):self.grabber.stop();self.grabber=None
+        if not on:self.backdrop=None;return
+        if sys.platform=='win32':self.grabber=BackdropGrabber(int(self.winId()));self.grabber.frame.connect(self.show_backdrop);self.set_grab_rate()
+    def set_grab_rate(self):
+        screen=self.screen() or QtGui.QGuiApplication.primaryScreen();self.grabber.interval=1/max(30.0,min(240.0,screen.refreshRate() or 60.0))
+    def show_backdrop(self):
+        grabber=getattr(self,'grabber',None);image=grabber.take() if grabber else None
+        if image is None or not self.self_blur:return
+        self.backdrop=gaussian_blur(image,10);self.centralWidget().update()
     def apply_backdrop(self,glass):
         """Windows blur behind the (layered, translucent) window for the iOS style; returns whether it's on.
         Qt makes translucent frameless windows layered, which the documented DWM system backdrop ignores, so this
@@ -691,6 +731,7 @@ class Window(QtWidgets.QMainWindow):
         if big:user.SetClassLongPtrW(hwnd,-14,big);user.SendMessageW(hwnd,0x80,1,big) # GCLP_HICON, WM_SETICON ICON_BIG
         if small:user.SetClassLongPtrW(hwnd,-34,small);user.SendMessageW(hwnd,0x80,0,small) # GCLP_HICONSM, ICON_SMALL
     def closeEvent(self,event):
+        if getattr(self,'grabber',None):self.grabber.stop()
         if not self.closing:self.closing=True;self.core.close();self.timer.stop();self.status.setText('Restoring original animations and closing…')
         if self.core.finished():event.accept()
         else:event.ignore();QtCore.QTimer.singleShot(100,self.close)
