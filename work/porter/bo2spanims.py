@@ -68,57 +68,62 @@ QToolTip{{background:{n['panel']};color:{n['acc']};border:1px solid {n['dim']}}}
 """
 
 GLASS_FONT='Segoe UI Variable Text'
-def glass_palette(theme,see_through=False):
-    """iOS (liquid glass), as in the mockup: white text and frosted white panels over a colourful backdrop.
-    Accent and backdrop follow the hue; 'glass' (2-30) is how frosted the panels are."""
-    h=theme['h'];frost=max(2,min(30,theme.get('glass',10)))/100;white=lambda a:QtGui.QColor(255,255,255,int(255*a))
-    return {'acc':hsl(h,85,55,217),'accsoft':hsl(h,85,55,89),'text':white(1),'mid':white(0.62),'dim':white(0.2),'edge':white(0.12),
-            'panel':white(frost+0.05),'panel2':white(frost+0.10),'sel':white(0.14),'well':QtGui.QColor(0,0,0,36),
-            'bg':QtGui.QColor(10,12,20,90) if see_through else QtGui.QColor(0,0,0,0),'solid':QtGui.QColor(24,28,40),'ink':white(1)}
+GLASS_RADIUS=22 # iOS window corner radius.
+def glass_palette(theme):
+    """iOS (liquid glass): white text on see-through glass; the accent follows the hue."""
+    h=theme['h'];white=lambda a:QtGui.QColor(255,255,255,int(255*a))
+    return {'acc':hsl(h,85,55,235),'acclight':hsl(h,85,70,235),'accsoft':hsl(h,85,55,80),'text':white(1),'mid':white(0.78),'dim':white(0.28),
+            'edge':white(0.18),'sel':white(0.18),'solid':QtGui.QColor(24,28,40),'ink':white(1)}
 def rgba(color):return f'rgba({color.red()},{color.green()},{color.blue()},{color.alpha()})'
+def gloss(top,middle,bottom,colour=(255,255,255)):
+    """Vertical gloss: a bright top fading to a faint body, like a light catching curved glass."""
+    r,g,b=colour;a=lambda x:int(255*x)
+    return f'qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 rgba({r},{g},{b},{a(top)}),stop:0.48 rgba({r},{g},{b},{a(middle)}),stop:1 rgba({r},{g},{b},{a(bottom)}))'
 def glass_stylesheet(c):
-    n={key:rgba(value) for key,value in c.items()}
+    n={key:rgba(value) for key,value in c.items()};acc=c['acc'];light=c['acclight']
+    accent=f"qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 {rgba(light)},stop:0.5 {rgba(acc)},stop:1 {rgba(acc)})"
+    button=gloss(0.30,0.10,0.06);hover=gloss(0.40,0.16,0.10);field=gloss(0.12,0.05,0.04);panel=gloss(0.12,0.04,0.03)
     return f"""
 QWidget{{background:transparent;color:{n['text']};font-family:'{GLASS_FONT}','Segoe UI';font-size:13px}}
-QFrame#window{{background:{n['bg']};border:1px solid rgba(255,255,255,56);border-radius:14px}}
+QFrame#window{{background:transparent;border:1px solid rgba(255,255,255,70);border-top-color:rgba(255,255,255,150);border-radius:{GLASS_RADIUS}px}}
 QLabel#muted,QHeaderView::section{{color:{n['mid']}}}
 QLabel#title{{font-size:19px;font-weight:600;letter-spacing:0.5px}}
 QLabel#section{{color:{n['mid']};font-size:11px;font-weight:600;letter-spacing:1.5px;padding-top:6px}}
-QLabel#chip{{background:{n['panel2']};border:1px solid {n['dim']};border-radius:12px;padding:3px 11px}}
-QPushButton{{background:{n['panel']};border:1px solid {n['dim']};border-top-color:rgba(255,255,255,90);border-radius:13px;padding:5px 14px}}
-QPushButton:hover{{background:rgba(255,255,255,52)}}
-QPushButton:pressed{{background:rgba(255,255,255,24)}}
-QPushButton:disabled{{color:{n['mid']};background:{n['panel']}}}
-QPushButton:checked{{background:{n['acc']};border-color:rgba(255,255,255,115);color:white}}
-QLineEdit,QComboBox,QDoubleSpinBox{{background:{n['panel2']};border:1px solid {n['dim']};border-radius:13px;padding:4px 12px;selection-background-color:{n['acc']};selection-color:white}}
-QPlainTextEdit{{background:{n['well']};border:1px solid {n['edge']};border-radius:12px;padding:6px}}
+QLabel#chip{{background:{button};border:1px solid {n['edge']};border-top-color:rgba(255,255,255,150);border-radius:12px;padding:3px 11px}}
+QPushButton{{background:{button};border:1px solid {n['edge']};border-top-color:rgba(255,255,255,165);border-radius:13px;padding:5px 14px}}
+QPushButton:hover{{background:{hover}}}
+QPushButton:pressed{{background:{gloss(0.10,0.06,0.10)}}}
+QPushButton:disabled{{color:{n['mid']}}}
+QPushButton:checked{{background:{accent};border-color:rgba(255,255,255,120);border-top-color:rgba(255,255,255,200);color:white}}
+QLineEdit,QComboBox,QDoubleSpinBox{{background:{field};border:1px solid {n['edge']};border-top-color:rgba(255,255,255,110);border-radius:13px;padding:4px 12px;selection-background-color:{n['acc']};selection-color:white}}
+QPlainTextEdit{{background:{panel};border:1px solid {n['edge']};border-top-color:rgba(255,255,255,110);border-radius:18px;padding:8px}}
 QLineEdit:focus,QComboBox:focus{{border-color:{n['acc']}}}
 QComboBox QAbstractItemView,QMenu,QToolTip,QDialog,QMessageBox,QInputDialog{{background:{n['solid']};color:{n['text']};border:1px solid {n['dim']}}}
 QComboBox QAbstractItemView{{selection-background-color:{n['acc']};selection-color:white}}
-QTableView,QTableWidget{{background:{n['well']};border:1px solid {n['edge']};border-radius:16px;gridline-color:transparent;selection-background-color:{n['sel']};selection-color:white;outline:0}}
+QTableView,QTableWidget{{background:{panel};border:1px solid {n['edge']};border-top-color:rgba(255,255,255,120);border-radius:22px;gridline-color:transparent;selection-background-color:{n['sel']};selection-color:white;outline:0}}
 QTableView::item{{padding:0 4px}}
 QHeaderView,QHeaderView::section{{background:transparent;border:none;padding:6px 8px}}
 QTabWidget::pane{{border:none}}
 QTabBar{{background:transparent;qproperty-drawBase:0}}
 QTabBar::tab{{background:transparent;border:1px solid transparent;border-radius:13px;padding:5px 14px;margin:0 3px 8px 0;color:{n['mid']}}}
-QTabBar::tab:selected{{background:{n['acc']};color:white;border-color:rgba(255,255,255,110)}}
-QTabBar::tab:hover:!selected{{background:{n['panel2']};color:white}}
+QTabBar::tab:selected{{background:{accent};color:white;border-color:rgba(255,255,255,120);border-top-color:rgba(255,255,255,200)}}
+QTabBar::tab:hover:!selected{{background:{button};color:white}}
 QCheckBox{{spacing:8px}}
-QCheckBox::indicator{{width:14px;height:14px;border:1px solid rgba(255,255,255,120);border-radius:4px;background:{n['panel']}}}
-QCheckBox::indicator:checked{{background:{n['acc']};border-color:rgba(255,255,255,160)}}
-QSlider::groove:horizontal{{height:4px;border-radius:2px;background:rgba(255,255,255,40)}}
+QCheckBox::indicator{{width:14px;height:14px;border:1px solid rgba(255,255,255,140);border-radius:4px;background:{field}}}
+QCheckBox::indicator:checked{{background:{accent};border-color:rgba(255,255,255,180)}}
+QSlider::groove:horizontal{{height:4px;border-radius:2px;background:rgba(255,255,255,50)}}
 QSlider::sub-page:horizontal{{border-radius:2px;background:{n['acc']}}}
-QSlider::handle:horizontal{{background:white;width:16px;height:16px;margin:-6px 0;border-radius:8px}}
+QSlider::handle:horizontal{{background:{gloss(1,0.92,0.82)};width:16px;height:16px;margin:-6px 0;border-radius:8px}}
 QScrollBar:vertical{{background:transparent;width:10px;margin:2px}}
-QScrollBar::handle:vertical{{background:rgba(255,255,255,60);min-height:24px;border-radius:4px}}
+QScrollBar::handle:vertical{{background:rgba(255,255,255,70);min-height:24px;border-radius:4px}}
 QScrollBar::add-line,QScrollBar::sub-line{{height:0}}
 QScrollArea{{border:none}}
 QFrame#rule{{background:{n['dim']};max-height:1px;min-height:1px}}
-QFrame#card{{background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 {n['accsoft']},stop:1 rgba(255,255,255,15));border:1px solid rgba(255,255,255,71);border-top-color:rgba(255,255,255,128);border-radius:18px}}
+QFrame#card{{background:qlineargradient(x1:0,y1:0,x2:0,y2:1,stop:0 rgba(255,255,255,70),stop:0.35 {n['accsoft']},stop:1 rgba(255,255,255,12));border:1px solid rgba(255,255,255,80);border-top-color:rgba(255,255,255,210);border-radius:24px}}
 QFrame#card QLabel,QFrame#card QCheckBox{{background:transparent;color:white}}
 QFrame#card QPushButton{{color:white}}
-QFrame#card QPushButton:checked{{background:white;color:{rgba(c['solid'])}}}
-QFrame#card QFrame#rule{{background:rgba(255,255,255,60)}}
+QFrame#card QPushButton:checked{{background:{gloss(1,0.9,0.82)};color:{rgba(c['solid'])}}}
+QFrame#card QFrame#rule{{background:rgba(255,255,255,70)}}
 """
 
 def android_palette(theme):
@@ -329,23 +334,20 @@ class TitleBar(QtWidgets.QWidget):
         if event.button()==Qt.LeftButton:self.window_.toggle_maximized()
 
 class WindowFrame(QtWidgets.QFrame):
-    """Body of the frameless window; draws the 1px themed window border, and the iOS style's colourful backdrop."""
-    # (centre x, centre y, radius x, radius y) as fractions of the window, hue offset, opacity — the mockup's three glows.
-    GLOWS=((0.15,0.20,0.40,0.50,0,0.75),(0.85,0.30,0.45,0.55,60,0.60),(0.50,1.00,0.50,0.60,300,0.55))
+    """Body of the frameless window: the 1px themed border, and for iOS the see-through glass backdrop."""
     def __init__(self):super().__init__();self.setObjectName('window')
     def paintEvent(self,event):
         window=self.window();theme=getattr(getattr(window,'core',None),'theme',{})
-        if theme.get('style')=='glass' and not getattr(window,'glass_active',False):
+        if theme.get('style')=='glass':
             painter=QtGui.QPainter(self);painter.setRenderHint(QtGui.QPainter.Antialiasing);area=QtCore.QRectF(self.rect())
-            outline=QtGui.QPainterPath();outline.addRect(area) if window.isMaximized() else outline.addRoundedRect(area,14,14);painter.setClipPath(outline)
-            painter.fillRect(area,QtGui.QColor(11,15,26))
-            for cx,cy,rx,ry,offset,alpha in self.GLOWS:
-                glow=QtGui.QRadialGradient(QtCore.QPointF(0,0),1.0);color=hsl(theme['h']+offset,80,55,int(255*alpha));clear=QtGui.QColor(color);clear.setAlpha(0)
-                glow.setColorAt(0,color);glow.setColorAt(0.7,clear);glow.setColorAt(1,clear)
-                painter.save();painter.translate(area.width()*cx,area.height()*cy);painter.scale(area.width()*rx,area.height()*ry)
-                painter.fillRect(QtCore.QRectF(-2,-2,4,4),glow);painter.restore()
-            frost=max(2,min(30,theme.get('glass',10)))/100;painter.fillRect(area,QtGui.QColor(255,255,255,int(255*frost))) # The window's own sheet of glass.
-            painter.end()
+            outline=QtGui.QPainterPath();outline.addRect(area) if window.isMaximized() else outline.addRoundedRect(area,GLASS_RADIUS,GLASS_RADIUS);painter.setClipPath(outline)
+            backdrop=getattr(window,'backdrop',None)
+            if getattr(window,'glass_active',False):pass # Windows' blur shows through the transparent window.
+            elif backdrop is not None:painter.drawPixmap(area,backdrop,QtCore.QRectF(backdrop.rect())) # Our own blurred view of what's behind.
+            else:painter.fillRect(area,QtGui.QColor(20,24,34,235))
+            tint=max(0,min(60,theme.get('glass',10)))/100;painter.fillRect(area,QtGui.QColor(8,10,16,int(255*tint)))
+            sheen=QtGui.QLinearGradient(0,0,0,area.height()*0.4);sheen.setColorAt(0,QtGui.QColor(255,255,255,34));sheen.setColorAt(1,QtGui.QColor(255,255,255,0))
+            painter.fillRect(area,sheen);painter.end()
         super().paintEvent(event)
 
 class Window(QtWidgets.QMainWindow):
@@ -453,12 +455,11 @@ class Window(QtWidgets.QMainWindow):
         layout=QtWidgets.QVBoxLayout(page);layout.setContentsMargins(0,6,12,0);layout.setSpacing(8)
         layout.addWidget(label('APPEARANCE',name='section'))
         self.style_buttons={key:self.plain_button(name,lambda checked=False,key=key:self.core.set_theme(style=key),checkable=True) for key,name in (('terminal','Terminal'),('glass','iOS'),('android','Android'))}
-        self.glass_slider=QtWidgets.QSlider(Qt.Horizontal);self.glass_slider.setRange(2,30);self.glass_slider.setFocusPolicy(Qt.NoFocus);self.glass_slider.setMinimumWidth(220)
+        self.glass_slider=QtWidgets.QSlider(Qt.Horizontal);self.glass_slider.setRange(0,60);self.glass_slider.setFocusPolicy(Qt.NoFocus);self.glass_slider.setMinimumWidth(220)
         self.glass_slider.valueChanged.connect(lambda v:(self.core.set_theme(save=False,glass=v),self.save_timer.start(400)));self.glass_value=label('',name='muted')
-        self.glass_label=label('Glass strength',name='muted')
-        self.see_through=QtWidgets.QCheckBox('See-through (desktop blur)');self.see_through.setFocusPolicy(Qt.NoFocus);self.see_through.toggled.connect(lambda on:self.core.set_theme(see_through=on))
-        self.glass_hint=label('See-through needs Windows Settings › Personalization › Colors › Transparency effects turned on.',name='muted');self.glass_hint.setWordWrap(True)
-        layout.addLayout(row(label('Style',name='muted'),*self.style_buttons.values(),self.glass_label,self.glass_slider,self.glass_value,self.see_through,stretch_at=7))
+        self.glass_label=label('Tint',name='muted')
+        self.glass_hint=label('iOS is blurring what’s behind the window itself, so screen captures leave the window out while it’s on. Turn on Windows Settings › Personalization › Colors › Transparency effects for Windows’ own smoother blur instead.',name='muted');self.glass_hint.setWordWrap(True)
+        layout.addLayout(row(label('Style',name='muted'),*self.style_buttons.values(),self.glass_label,self.glass_slider,self.glass_value,stretch_at=6))
         layout.addWidget(self.glass_hint)
         layout.addLayout(row(self.plain_button('Copy appearance code',lambda:self.copy_code(self.core.share_theme_code())),self.plain_button('Paste share code',self.paste_code),label('Style, accent, glow and glass tint as text you can send.',name='muted'),stretch_at=3))
         layout.addWidget(label('ACCENT COLOR',name='section'))
@@ -584,23 +585,24 @@ class Window(QtWidgets.QMainWindow):
         if core.freelook_vk and core.freelook_enabled:hints.append(f'[{core.freelook_name}] Freelook')
         self.hints.setText('   '.join(hints+['[Right-click] Set hotkey']))
     def apply_theme(self):
-        theme=self.core.theme;glass=theme.get('style')=='glass';see_through=glass and bool(theme.get('see_through'))
-        self.glass_active=self.apply_backdrop(see_through) if self.isVisible() else False # True only while the desktop blur shows through.
+        theme=self.core.theme;glass=theme.get('style')=='glass'
+        self.glass_active=self.apply_backdrop(glass) if self.isVisible() else False # Windows blur, when transparency effects are on.
+        self.set_self_blur(glass and not self.glass_active and self.isVisible())
         android=theme.get('style')=='android';font=QtGui.QFont(self.font());font.setStyleStrategy(QtGui.QFont.PreferDefault);self.setFont(font)
         self.pixel_effect=PixelEffect(2) if android else None # Held here: PySide would otherwise free it at once.
         self.centralWidget().setGraphicsEffect(self.pixel_effect)
         if android:self.colors=android_palette(theme);self.setStyleSheet(android_stylesheet(self.colors));self.watermark.tint(self.colors['acc'])
         elif glass:
-            self.colors=glass_palette(theme,self.glass_active);self.setStyleSheet(glass_stylesheet(self.colors));self.watermark.tint(QtGui.QColor(255,255,255))
+            self.colors=glass_palette(theme);self.setStyleSheet(glass_stylesheet(self.colors));self.watermark.tint(QtGui.QColor(255,255,255))
         else:self.colors=palette(theme);self.setStyleSheet(stylesheet(self.colors));self.watermark.tint(self.colors['acc'])
         self.title_label.setText('BO2SPAnims' if glass else 'bo2spanims.apk' if android else APP_NAME)
         self.lights.update_lights();self.subtitle.setVisible(not android) # The bigger pixel font needs the room.
         for key,button in self.style_buttons.items():button.blockSignals(True);button.setChecked(theme.get('style','terminal')==key);button.blockSignals(False)
-        for widget in (self.glass_label,self.glass_slider,self.glass_value,self.see_through):widget.setVisible(glass)
-        available=transparency_enabled();self.see_through.setEnabled(available);self.glass_hint.setVisible(glass and not available)
-        self.see_through.blockSignals(True);self.see_through.setChecked(see_through and available);self.see_through.blockSignals(False)
-        strength=max(2,min(30,int(self.core.theme.get('glass',10))))
-        self.glass_slider.blockSignals(True);self.glass_slider.setValue(strength);self.glass_slider.blockSignals(False);self.glass_value.setText(f'{strength}%')
+        for widget in (self.glass_label,self.glass_slider,self.glass_value):widget.setVisible(glass)
+        self.glass_hint.setVisible(glass and self.self_blur)
+        tint=max(0,min(60,int(self.core.theme.get('glass',10))))
+        self.update_shape()
+        self.glass_slider.blockSignals(True);self.glass_slider.setValue(tint);self.glass_slider.blockSignals(False);self.glass_value.setText(f'{tint}%')
         self.centralWidget().update() # Repaint the backdrop for the new hue.
         self.glow_box.setEnabled(not glass and not android)
         for key,slider in self.sliders.items():
@@ -612,17 +614,46 @@ class Window(QtWidgets.QMainWindow):
             else:widget.setGraphicsEffect(None)
         self.render_snapshot()
 
+    def update_shape(self):
+        """iOS: cut the window to its rounded outline so the blur behind doesn't show past the corners."""
+        if self.core.theme.get('style')=='glass' and not self.isMaximized():
+            outline=QtGui.QPainterPath();outline.addRoundedRect(QtCore.QRectF(self.rect()),GLASS_RADIUS,GLASS_RADIUS)
+            self.setMask(QtGui.QRegion(outline.toFillPolygon().toPolygon()))
+        else:self.clearMask()
+    def resizeEvent(self,event):super().resizeEvent(event);self.built and self.update_shape()
+    def set_self_blur(self,on):
+        """Without Windows transparency effects there is no system blur, so iOS snapshots and blurs what's behind
+        the window itself (~10 fps). The window is excluded from screen capture meanwhile, or it would see itself."""
+        if getattr(self,'self_blur',None)==on:return
+        self.self_blur=on
+        if not on:self.backdrop=None;self.backdrop_key=None
+        if sys.platform=='win32' and self.isVisible():
+            ctypes.windll.user32.SetWindowDisplayAffinity(ctypes.c_void_p(int(self.winId())),0x11 if on else 0) # WDA_EXCLUDEFROMCAPTURE / WDA_NONE
+        if not hasattr(self,'backdrop_timer'):self.backdrop_timer=QtCore.QTimer(self);self.backdrop_timer.timeout.connect(self.capture_backdrop)
+        self.backdrop_timer.start(100) if on else self.backdrop_timer.stop()
+        if on:self.capture_backdrop()
+    def capture_backdrop(self):
+        if not self.self_blur or not self.isVisible() or self.isMinimized():return
+        frame=self.frameGeometry();screen=QtGui.QGuiApplication.screenAt(frame.center()) or QtGui.QGuiApplication.primaryScreen();origin=screen.geometry().topLeft()
+        shot=screen.grabWindow(0,frame.x()-origin.x(),frame.y()-origin.y(),frame.width(),frame.height()).toImage()
+        if shot.isNull():return
+        tiny=shot.scaled(max(1,frame.width()//24),max(1,frame.height()//24),Qt.IgnoreAspectRatio,Qt.SmoothTransformation)
+        key=bytes(tiny.constBits()) if hasattr(tiny,'constBits') else None
+        if key is not None and key==getattr(self,'backdrop_key',None):return # Nothing behind changed.
+        self.backdrop_key=key;soft=tiny.scaled(frame.width()//6,frame.height()//6,Qt.IgnoreAspectRatio,Qt.SmoothTransformation) # Two smooth scales read as a soft blur.
+        self.backdrop=QtGui.QPixmap.fromImage(soft);self.centralWidget().update()
     def apply_backdrop(self,glass):
-        """Windows acrylic blur behind the (layered, translucent) window for the iOS style; returns whether it's on.
+        """Windows blur behind the (layered, translucent) window for the iOS style; returns whether it's on.
         Qt makes translucent frameless windows layered, which the documented DWM system backdrop ignores, so this
-        uses the window-composition accent (ACCENT_ENABLE_ACRYLICBLURBEHIND) that does work on layered windows."""
+        uses the window-composition accent, which does work on layered windows. Plain blur-behind (3) with no tint rather than
+        acrylic (4): acrylic adds its own dark luminosity layer, and it ignores the window's rounded mask, leaving dark corners."""
         if sys.platform!='win32':return False
-        glass=glass and transparency_enabled() # With Windows transparency effects off, acrylic is drawn solid.
+        glass=glass and transparency_enabled() # With Windows transparency effects off, the blur is drawn solid.
         try:
             hwnd=ctypes.c_void_p(int(self.winId()))
             class Accent(ctypes.Structure):_fields_=[('state',ctypes.c_int),('flags',ctypes.c_int),('color',ctypes.c_uint),('animation',ctypes.c_int)]
             class Data(ctypes.Structure):_fields_=[('attribute',ctypes.c_int),('data',ctypes.c_void_p),('size',ctypes.c_size_t)]
-            accent=Accent(4 if glass else 0,2,0x01101010,0) # 4 = acrylic blur behind; colour is ABGR with a near-zero alpha tint.
+            accent=Accent(3 if glass else 0,0,0,0) # 3 = blur behind, untinted; the Tint slider paints the darkening.
             data=Data(19,ctypes.cast(ctypes.byref(accent),ctypes.c_void_p),ctypes.sizeof(accent)) # 19 = WCA_ACCENT_POLICY
             ok=bool(ctypes.windll.user32.SetWindowCompositionAttribute(hwnd,ctypes.byref(data)))
             corner=ctypes.c_int(2 if glass else 1);ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd,33,ctypes.byref(corner),4) # Rounded corners for glass.
