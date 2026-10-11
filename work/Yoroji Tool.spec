@@ -5,7 +5,7 @@ a = Analysis(
     ['porter/bo2spanims.py'],
     pathex=[],
     binaries=[],
-    datas=[('porter/assets/watermark.png','assets')],
+    datas=[('porter/assets','assets')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -32,6 +32,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='porter/assets/app.ico',
 )
 coll = COLLECT(
     exe,

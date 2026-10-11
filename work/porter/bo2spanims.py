@@ -424,7 +424,8 @@ def main():
     if not handle:raise OSError(ctypes.get_last_error(),'Cannot initialize importer')
     duplicate=ctypes.get_last_error()==183
     try:
-        app=QtWidgets.QApplication(sys.argv);app.setApplicationName(APP_NAME)
+        if sys.platform=='win32':ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('Yoroji.BO2SPAnims') # Taskbar uses our icon, not python's.
+        app=QtWidgets.QApplication(sys.argv);app.setApplicationName(APP_NAME);app.setWindowIcon(QtGui.QIcon(str(ASSETS/'app.ico')))
         if duplicate:QtWidgets.QMessageBox.information(None,'Already open','BO2SPAnims is already running. Use the existing window.');return
         window=Window();window.show();app.exec()
     finally:k.CloseHandle(handle)
