@@ -7,7 +7,8 @@
     "BO2 Zombies",
     "Replacements 12",
     "Debug",
-    "Settings"
+    "Settings",
+    "About"
   ],
   "apply_button_shows_key": "[B] Apply anim",
   "use_clip_and_lock_have_no_hotkey": true,
