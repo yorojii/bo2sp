@@ -333,6 +333,17 @@ class TitleBar(QtWidgets.QWidget):
     def mouseDoubleClickEvent(self,event):
         if event.button()==Qt.LeftButton:self.window_.toggle_maximized()
 
+def gaussian_blur(image,radius):
+    """A real Gaussian blur of a QImage (via QGraphicsBlurEffect), as a QPixmap. Edges are padded so they don't darken."""
+    pad=radius*2;source=QtGui.QImage(image.width()+pad*2,image.height()+pad*2,QtGui.QImage.Format_ARGB32_Premultiplied)
+    painter=QtGui.QPainter(source);painter.drawImage(QtCore.QRectF(source.rect()),image) # Stretched edges stand in for what's past them.
+    painter.drawImage(pad,pad,image);painter.end()
+    scene=QtWidgets.QGraphicsScene();item=scene.addPixmap(QtGui.QPixmap.fromImage(source))
+    effect=QtWidgets.QGraphicsBlurEffect();effect.setBlurRadius(radius);effect.setBlurHints(QtWidgets.QGraphicsBlurEffect.QualityHint);item.setGraphicsEffect(effect)
+    result=QtGui.QImage(image.size(),QtGui.QImage.Format_ARGB32_Premultiplied);result.fill(0)
+    painter=QtGui.QPainter(result);scene.render(painter,QtCore.QRectF(result.rect()),QtCore.QRectF(pad,pad,image.width(),image.height()));painter.end()
+    return QtGui.QPixmap.fromImage(result)
+
 class WindowFrame(QtWidgets.QFrame):
     """Body of the frameless window: the 1px themed border, and for iOS the see-through glass backdrop."""
     def __init__(self):super().__init__();self.setObjectName('window')
@@ -343,7 +354,7 @@ class WindowFrame(QtWidgets.QFrame):
             outline=QtGui.QPainterPath();outline.addRect(area) if window.isMaximized() else outline.addRoundedRect(area,GLASS_RADIUS,GLASS_RADIUS);painter.setClipPath(outline)
             backdrop=getattr(window,'backdrop',None)
             if getattr(window,'glass_active',False):pass # Windows' blur shows through the transparent window.
-            elif backdrop is not None:painter.drawPixmap(area,backdrop,QtCore.QRectF(backdrop.rect())) # Our own blurred view of what's behind.
+            elif backdrop is not None:painter.setRenderHint(QtGui.QPainter.SmoothPixmapTransform);painter.drawPixmap(area,backdrop,QtCore.QRectF(backdrop.rect())) # Our own blurred view of what's behind.
             else:painter.fillRect(area,QtGui.QColor(20,24,34,235))
             tint=max(0,min(60,theme.get('glass',10)))/100;painter.fillRect(area,QtGui.QColor(8,10,16,int(255*tint)))
             sheen=QtGui.QLinearGradient(0,0,0,area.height()*0.4);sheen.setColorAt(0,QtGui.QColor(255,255,255,34));sheen.setColorAt(1,QtGui.QColor(255,255,255,0))
@@ -458,7 +469,7 @@ class Window(QtWidgets.QMainWindow):
         self.glass_slider=QtWidgets.QSlider(Qt.Horizontal);self.glass_slider.setRange(0,60);self.glass_slider.setFocusPolicy(Qt.NoFocus);self.glass_slider.setMinimumWidth(220)
         self.glass_slider.valueChanged.connect(lambda v:(self.core.set_theme(save=False,glass=v),self.save_timer.start(400)));self.glass_value=label('',name='muted')
         self.glass_label=label('Tint',name='muted')
-        self.glass_hint=label('iOS is blurring what’s behind the window itself, so screen captures leave the window out while it’s on. Turn on Windows Settings › Personalization › Colors › Transparency effects for Windows’ own smoother blur instead.',name='muted');self.glass_hint.setWordWrap(True)
+        self.glass_hint=label('iOS blurs the screen behind the window itself, so screenshots and recordings leave this window out while iOS is on.',name='muted');self.glass_hint.setWordWrap(True)
         layout.addLayout(row(label('Style',name='muted'),*self.style_buttons.values(),self.glass_label,self.glass_slider,self.glass_value,stretch_at=6))
         layout.addWidget(self.glass_hint)
         layout.addLayout(row(self.plain_button('Copy appearance code',lambda:self.copy_code(self.core.share_theme_code())),self.plain_button('Paste share code',self.paste_code),label('Style, accent, glow and glass tint as text you can send.',name='muted'),stretch_at=3))
@@ -586,8 +597,10 @@ class Window(QtWidgets.QMainWindow):
         self.hints.setText('   '.join(hints+['[Right-click] Set hotkey']))
     def apply_theme(self):
         theme=self.core.theme;glass=theme.get('style')=='glass'
-        self.glass_active=self.apply_backdrop(glass) if self.isVisible() else False # Windows blur, when transparency effects are on.
-        self.set_self_blur(glass and not self.glass_active and self.isVisible())
+        # Windows' blur ignores the window's shape (it's cut at its own ~8px corners, which showed as a second corner
+        # around the 22px one), so iOS always paints its own blurred snapshot of the screen behind, clipped to 22px.
+        if self.isVisible():self.apply_backdrop(False)
+        self.glass_active=False;self.set_self_blur(glass and self.isVisible())
         android=theme.get('style')=='android';font=QtGui.QFont(self.font());font.setStyleStrategy(QtGui.QFont.PreferDefault);self.setFont(font)
         self.pixel_effect=PixelEffect(2) if android else None # Held here: PySide would otherwise free it at once.
         self.centralWidget().setGraphicsEffect(self.pixel_effect)
@@ -621,9 +634,10 @@ class Window(QtWidgets.QMainWindow):
             self.setMask(QtGui.QRegion(outline.toFillPolygon().toPolygon()))
         else:self.clearMask()
     def resizeEvent(self,event):super().resizeEvent(event);self.built and self.update_shape()
+    def moveEvent(self,event):super().moveEvent(event);getattr(self,'self_blur',False) and self.capture_backdrop() # Keep the blur under the window while dragging.
     def set_self_blur(self,on):
-        """Without Windows transparency effects there is no system blur, so iOS snapshots and blurs what's behind
-        the window itself (~10 fps). The window is excluded from screen capture meanwhile, or it would see itself."""
+        """iOS snapshots and blurs what's behind the window itself (~10 fps, and on every move). The window is
+        excluded from screen capture meanwhile, or it would see itself."""
         if getattr(self,'self_blur',None)==on:return
         self.self_blur=on
         if not on:self.backdrop=None;self.backdrop_key=None
@@ -637,11 +651,11 @@ class Window(QtWidgets.QMainWindow):
         frame=self.frameGeometry();screen=QtGui.QGuiApplication.screenAt(frame.center()) or QtGui.QGuiApplication.primaryScreen();origin=screen.geometry().topLeft()
         shot=screen.grabWindow(0,frame.x()-origin.x(),frame.y()-origin.y(),frame.width(),frame.height()).toImage()
         if shot.isNull():return
-        tiny=shot.scaled(max(1,frame.width()//24),max(1,frame.height()//24),Qt.IgnoreAspectRatio,Qt.SmoothTransformation)
+        tiny=shot.scaled(max(1,frame.width()//24),max(1,frame.height()//24),Qt.IgnoreAspectRatio,Qt.SmoothTransformation) # Change check only.
         key=bytes(tiny.constBits()) if hasattr(tiny,'constBits') else None
         if key is not None and key==getattr(self,'backdrop_key',None):return # Nothing behind changed.
-        self.backdrop_key=key;soft=tiny.scaled(frame.width()//6,frame.height()//6,Qt.IgnoreAspectRatio,Qt.SmoothTransformation) # Two smooth scales read as a soft blur.
-        self.backdrop=QtGui.QPixmap.fromImage(soft);self.centralWidget().update()
+        self.backdrop_key=key;self.backdrop=gaussian_blur(shot.scaled(max(1,frame.width()//4),max(1,frame.height()//4),Qt.IgnoreAspectRatio,Qt.SmoothTransformation),10)
+        self.centralWidget().update()
     def apply_backdrop(self,glass):
         """Windows blur behind the (layered, translucent) window for the iOS style; returns whether it's on.
         Qt makes translucent frameless windows layered, which the documented DWM system backdrop ignores, so this
