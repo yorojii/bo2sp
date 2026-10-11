@@ -13,6 +13,7 @@ from core import Core,GAMES,THEME_PRESETS,DEFAULT_THEME,k
 APP_NAME='BO2SPANIMS'
 CHANNEL_URL='https://www.youtube.com/@Yorojiii' # The watermark opens the creator's channel.
 ASSETS=Path(getattr(sys,'_MEIPASS',Path(__file__).resolve().parent))/'assets'
+ARROW_UP,ARROW_DOWN=((ASSETS/name).as_posix() for name in ('arrow_up.png','arrow_down.png')) # iOS spin-box arrows (stylesheet urls want forward slashes).
 FONT='Consolas'
 
 def hsl(h,s,l,alpha=255):
@@ -97,6 +98,13 @@ QPushButton:disabled{{color:{n['mid']}}}
 QPushButton:checked{{background:{accent};border-color:rgba(255,255,255,120);border-top-color:rgba(255,255,255,200);color:white}}
 QLineEdit,QComboBox,QDoubleSpinBox{{background:{field};border:1px solid {n['edge']};border-top-color:rgba(255,255,255,110);border-radius:13px;padding:4px 12px;selection-background-color:{n['acc']};selection-color:white}}
 QPlainTextEdit{{background:{panel};border:1px solid {n['edge']};border-top-color:rgba(255,255,255,110);border-radius:18px;padding:8px}}
+QDoubleSpinBox{{padding-right:30px;min-width:56px}}
+QDoubleSpinBox::up-button,QDoubleSpinBox::down-button{{subcontrol-origin:border;width:24px;border:none;background:transparent;margin-right:8px}}
+QDoubleSpinBox::up-button{{subcontrol-position:top right;margin-top:4px}}
+QDoubleSpinBox::down-button{{subcontrol-position:bottom right;margin-bottom:4px}}
+QDoubleSpinBox::up-arrow{{image:url({ARROW_UP});width:9px;height:5px}}
+QDoubleSpinBox::down-arrow{{image:url({ARROW_DOWN});width:9px;height:5px}}
+QDoubleSpinBox::up-arrow:hover,QDoubleSpinBox::down-arrow:hover{{width:11px;height:6px}}
 QLineEdit:focus,QComboBox:focus{{border-color:{n['acc']}}}
 QComboBox QAbstractItemView,QMenu,QToolTip,QDialog,QMessageBox,QInputDialog{{background:{n['solid']};color:{n['text']};border:1px solid {n['dim']}}}
 QComboBox QAbstractItemView{{selection-background-color:{n['acc']};selection-color:white}}
