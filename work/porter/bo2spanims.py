@@ -68,37 +68,38 @@ QToolTip{{background:{n['panel']};color:{n['acc']};border:1px solid {n['dim']}}}
 """
 
 GLASS_FONT='Segoe UI Variable Text'
-def glass_palette(theme):
-    """Liquid glass: white text over a blurred backdrop, one accent; 'glass' sets how dark the tint behind panels is."""
-    h,s,l=theme['h'],theme['s'],theme['l'];tint=theme.get('glass',45)/100
-    return {'acc':hsl(h,s,max(l,45)),'accsoft':hsl(h,s,max(l,45),110),'text':QtGui.QColor(255,255,255),'mid':QtGui.QColor(255,255,255,165),
-            'dim':QtGui.QColor(255,255,255,46),'panel':QtGui.QColor(255,255,255,20),'panel2':QtGui.QColor(255,255,255,34),'sel':QtGui.QColor(255,255,255,40),
-            'bg':hsl(h,s*0.3,7,min(255,int(70+150*tint))),'solid':hsl(h,s*0.25,11),'ink':QtGui.QColor(255,255,255)}
+def glass_palette(theme,see_through=False):
+    """iOS (liquid glass), as in the mockup: white text and frosted white panels over a colourful backdrop.
+    Accent and backdrop follow the hue; 'glass' (2-30) is how frosted the panels are."""
+    h=theme['h'];frost=max(2,min(30,theme.get('glass',10)))/100;white=lambda a:QtGui.QColor(255,255,255,int(255*a))
+    return {'acc':hsl(h,85,55,217),'accsoft':hsl(h,85,55,89),'text':white(1),'mid':white(0.62),'dim':white(0.2),'edge':white(0.12),
+            'panel':white(frost+0.05),'panel2':white(frost+0.10),'sel':white(0.14),'well':QtGui.QColor(0,0,0,36),
+            'bg':QtGui.QColor(10,12,20,90) if see_through else QtGui.QColor(0,0,0,0),'solid':QtGui.QColor(24,28,40),'ink':white(1)}
 def rgba(color):return f'rgba({color.red()},{color.green()},{color.blue()},{color.alpha()})'
 def glass_stylesheet(c):
     n={key:rgba(value) for key,value in c.items()}
     return f"""
 QWidget{{background:transparent;color:{n['text']};font-family:'{GLASS_FONT}','Segoe UI';font-size:13px}}
-QFrame#window{{background:{n['bg']};border:1px solid {n['dim']};border-radius:14px}}
+QFrame#window{{background:{n['bg']};border:1px solid rgba(255,255,255,56);border-radius:14px}}
 QLabel#muted,QHeaderView::section{{color:{n['mid']}}}
 QLabel#title{{font-size:19px;font-weight:600;letter-spacing:0.5px}}
 QLabel#section{{color:{n['mid']};font-size:11px;font-weight:600;letter-spacing:1.5px;padding-top:6px}}
 QLabel#chip{{background:{n['panel2']};border:1px solid {n['dim']};border-radius:12px;padding:3px 11px}}
-QPushButton{{background:{n['panel2']};border:1px solid {n['dim']};border-top-color:rgba(255,255,255,90);border-radius:13px;padding:5px 14px}}
+QPushButton{{background:{n['panel']};border:1px solid {n['dim']};border-top-color:rgba(255,255,255,90);border-radius:13px;padding:5px 14px}}
 QPushButton:hover{{background:rgba(255,255,255,52)}}
 QPushButton:pressed{{background:rgba(255,255,255,24)}}
 QPushButton:disabled{{color:{n['mid']};background:{n['panel']}}}
-QPushButton:checked{{background:{n['acc']};border-color:rgba(255,255,255,110);color:white}}
+QPushButton:checked{{background:{n['acc']};border-color:rgba(255,255,255,115);color:white}}
 QLineEdit,QComboBox,QDoubleSpinBox{{background:{n['panel2']};border:1px solid {n['dim']};border-radius:13px;padding:4px 12px;selection-background-color:{n['acc']};selection-color:white}}
-QPlainTextEdit{{background:{n['panel']};border:1px solid {n['dim']};border-radius:12px;padding:6px}}
+QPlainTextEdit{{background:{n['well']};border:1px solid {n['edge']};border-radius:12px;padding:6px}}
 QLineEdit:focus,QComboBox:focus{{border-color:{n['acc']}}}
 QComboBox QAbstractItemView,QMenu,QToolTip,QDialog,QMessageBox,QInputDialog{{background:{n['solid']};color:{n['text']};border:1px solid {n['dim']}}}
 QComboBox QAbstractItemView{{selection-background-color:{n['acc']};selection-color:white}}
-QTableView,QTableWidget{{background:{n['panel']};border:1px solid {n['dim']};border-radius:14px;gridline-color:transparent;selection-background-color:{n['sel']};selection-color:white;outline:0}}
+QTableView,QTableWidget{{background:{n['well']};border:1px solid {n['edge']};border-radius:16px;gridline-color:transparent;selection-background-color:{n['sel']};selection-color:white;outline:0}}
 QTableView::item{{padding:0 4px}}
 QHeaderView,QHeaderView::section{{background:transparent;border:none;padding:6px 8px}}
 QTabWidget::pane{{border:none}}
-QTabBar{{background:transparent}}
+QTabBar{{background:transparent;qproperty-drawBase:0}}
 QTabBar::tab{{background:transparent;border:1px solid transparent;border-radius:13px;padding:5px 14px;margin:0 3px 8px 0;color:{n['mid']}}}
 QTabBar::tab:selected{{background:{n['acc']};color:white;border-color:rgba(255,255,255,110)}}
 QTabBar::tab:hover:!selected{{background:{n['panel2']};color:white}}
@@ -113,7 +114,7 @@ QScrollBar::handle:vertical{{background:rgba(255,255,255,60);min-height:24px;bor
 QScrollBar::add-line,QScrollBar::sub-line{{height:0}}
 QScrollArea{{border:none}}
 QFrame#rule{{background:{n['dim']};max-height:1px;min-height:1px}}
-QFrame#card{{background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 {n['accsoft']},stop:1 rgba(255,255,255,18));border:1px solid rgba(255,255,255,70);border-top-color:rgba(255,255,255,130);border-radius:18px}}
+QFrame#card{{background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 {n['accsoft']},stop:1 rgba(255,255,255,15));border:1px solid rgba(255,255,255,71);border-top-color:rgba(255,255,255,128);border-radius:18px}}
 QFrame#card QLabel,QFrame#card QCheckBox{{background:transparent;color:white}}
 QFrame#card QPushButton{{color:white}}
 QFrame#card QPushButton:checked{{background:white;color:{rgba(c['solid'])}}}
@@ -305,8 +306,24 @@ class TitleBar(QtWidgets.QWidget):
         if event.button()==Qt.LeftButton:self.window_.toggle_maximized()
 
 class WindowFrame(QtWidgets.QFrame):
-    """Body of the frameless window; draws the 1px themed window border."""
+    """Body of the frameless window; draws the 1px themed window border, and the iOS style's colourful backdrop."""
+    # (centre x, centre y, radius x, radius y) as fractions of the window, hue offset, opacity — the mockup's three glows.
+    GLOWS=((0.15,0.20,0.40,0.50,0,0.75),(0.85,0.30,0.45,0.55,60,0.60),(0.50,1.00,0.50,0.60,300,0.55))
     def __init__(self):super().__init__();self.setObjectName('window')
+    def paintEvent(self,event):
+        window=self.window();theme=getattr(getattr(window,'core',None),'theme',{})
+        if theme.get('style')=='glass' and not getattr(window,'glass_active',False):
+            painter=QtGui.QPainter(self);painter.setRenderHint(QtGui.QPainter.Antialiasing);area=QtCore.QRectF(self.rect())
+            outline=QtGui.QPainterPath();outline.addRect(area) if window.isMaximized() else outline.addRoundedRect(area,14,14);painter.setClipPath(outline)
+            painter.fillRect(area,QtGui.QColor(11,15,26))
+            for cx,cy,rx,ry,offset,alpha in self.GLOWS:
+                glow=QtGui.QRadialGradient(QtCore.QPointF(0,0),1.0);color=hsl(theme['h']+offset,80,55,int(255*alpha));clear=QtGui.QColor(color);clear.setAlpha(0)
+                glow.setColorAt(0,color);glow.setColorAt(0.7,clear);glow.setColorAt(1,clear)
+                painter.save();painter.translate(area.width()*cx,area.height()*cy);painter.scale(area.width()*rx,area.height()*ry)
+                painter.fillRect(QtCore.QRectF(-2,-2,4,4),glow);painter.restore()
+            frost=max(2,min(30,theme.get('glass',10)))/100;painter.fillRect(area,QtGui.QColor(255,255,255,int(255*frost))) # The window's own sheet of glass.
+            painter.end()
+        super().paintEvent(event)
 
 class Window(QtWidgets.QMainWindow):
     def __init__(self):
@@ -413,11 +430,12 @@ class Window(QtWidgets.QMainWindow):
         layout=QtWidgets.QVBoxLayout(page);layout.setContentsMargins(0,6,12,0);layout.setSpacing(8)
         layout.addWidget(label('APPEARANCE',name='section'))
         self.style_buttons={key:self.plain_button(name,lambda checked=False,key=key:self.core.set_theme(style=key),checkable=True) for key,name in (('terminal','Terminal'),('glass','iOS'),('android','Android'))}
-        self.glass_slider=QtWidgets.QSlider(Qt.Horizontal);self.glass_slider.setRange(0,100);self.glass_slider.setFocusPolicy(Qt.NoFocus);self.glass_slider.setMinimumWidth(220)
+        self.glass_slider=QtWidgets.QSlider(Qt.Horizontal);self.glass_slider.setRange(2,30);self.glass_slider.setFocusPolicy(Qt.NoFocus);self.glass_slider.setMinimumWidth(220)
         self.glass_slider.valueChanged.connect(lambda v:(self.core.set_theme(save=False,glass=v),self.save_timer.start(400)));self.glass_value=label('',name='muted')
-        self.glass_label=label('Glass tint',name='muted')
-        self.glass_hint=label('Turn on Windows Settings › Personalization › Colors › Transparency effects for the real blur (now using a solid frosted tint).',name='muted');self.glass_hint.setWordWrap(True)
-        layout.addLayout(row(label('Style',name='muted'),*self.style_buttons.values(),self.glass_label,self.glass_slider,self.glass_value,stretch_at=6))
+        self.glass_label=label('Glass strength',name='muted')
+        self.see_through=QtWidgets.QCheckBox('See-through (desktop blur)');self.see_through.setFocusPolicy(Qt.NoFocus);self.see_through.toggled.connect(lambda on:self.core.set_theme(see_through=on))
+        self.glass_hint=label('See-through needs Windows Settings › Personalization › Colors › Transparency effects turned on.',name='muted');self.glass_hint.setWordWrap(True)
+        layout.addLayout(row(label('Style',name='muted'),*self.style_buttons.values(),self.glass_label,self.glass_slider,self.glass_value,self.see_through,stretch_at=7))
         layout.addWidget(self.glass_hint)
         layout.addLayout(row(self.plain_button('Copy appearance code',lambda:self.copy_code(self.core.share_theme_code())),self.plain_button('Paste share code',self.paste_code),label('Style, accent, glow and glass tint as text you can send.',name='muted'),stretch_at=3))
         layout.addWidget(label('ACCENT COLOR',name='section'))
@@ -543,23 +561,24 @@ class Window(QtWidgets.QMainWindow):
         if core.freelook_vk and core.freelook_enabled:hints.append(f'[{core.freelook_name}] Freelook')
         self.hints.setText('   '.join(hints+['[Right-click] Set hotkey']))
     def apply_theme(self):
-        theme=self.core.theme;glass=theme.get('style')=='glass'
-        self.glass_active=self.apply_backdrop(glass) if self.isVisible() else glass
+        theme=self.core.theme;glass=theme.get('style')=='glass';see_through=glass and bool(theme.get('see_through'))
+        self.glass_active=self.apply_backdrop(see_through) if self.isVisible() else False # True only while the desktop blur shows through.
         android=theme.get('style')=='android';font=QtGui.QFont(self.font());font.setStyleStrategy(QtGui.QFont.PreferDefault);self.setFont(font)
         self.pixel_effect=PixelEffect(2) if android else None # Held here: PySide would otherwise free it at once.
         self.centralWidget().setGraphicsEffect(self.pixel_effect)
         if android:self.colors=android_palette(theme);self.setStyleSheet(android_stylesheet(self.colors));self.watermark.tint(self.colors['acc'])
         elif glass:
-            if not self.glass_active:theme={**theme,'glass':200} # No system blur: an opaque frosted tint, nothing sharp bleeding through.
-            self.colors=glass_palette(theme);self.setStyleSheet(glass_stylesheet(self.colors));self.watermark.tint(QtGui.QColor(255,255,255))
-            self.colors['acc']=hsl(theme['h'],theme['s'],max(theme['l'],45)) # Used for table text colors below.
+            self.colors=glass_palette(theme,self.glass_active);self.setStyleSheet(glass_stylesheet(self.colors));self.watermark.tint(QtGui.QColor(255,255,255))
         else:self.colors=palette(theme);self.setStyleSheet(stylesheet(self.colors));self.watermark.tint(self.colors['acc'])
         self.title_label.setText('BO2SPAnims' if glass else 'bo2spanims.apk' if android else APP_NAME)
         self.lights.update_lights();self.subtitle.setVisible(not android) # The bigger pixel font needs the room.
         for key,button in self.style_buttons.items():button.blockSignals(True);button.setChecked(theme.get('style','terminal')==key);button.blockSignals(False)
-        for widget in (self.glass_label,self.glass_slider,self.glass_value):widget.setVisible(glass and self.glass_active)
-        self.glass_hint.setVisible(glass and not self.glass_active and self.isVisible())
-        self.glass_slider.blockSignals(True);self.glass_slider.setValue(int(self.core.theme.get('glass',45)));self.glass_slider.blockSignals(False);self.glass_value.setText(f"{int(self.core.theme.get('glass',45))}%")
+        for widget in (self.glass_label,self.glass_slider,self.glass_value,self.see_through):widget.setVisible(glass)
+        available=transparency_enabled();self.see_through.setEnabled(available);self.glass_hint.setVisible(glass and not available)
+        self.see_through.blockSignals(True);self.see_through.setChecked(see_through and available);self.see_through.blockSignals(False)
+        strength=max(2,min(30,int(self.core.theme.get('glass',10))))
+        self.glass_slider.blockSignals(True);self.glass_slider.setValue(strength);self.glass_slider.blockSignals(False);self.glass_value.setText(f'{strength}%')
+        self.centralWidget().update() # Repaint the backdrop for the new hue.
         self.glow_box.setEnabled(not glass and not android)
         for key,slider in self.sliders.items():
             slider.blockSignals(True);slider.setValue(int(theme[key]));slider.blockSignals(False);self.slider_values[key].setText(f"{int(theme[key])}{'°' if key=='h' else '%'}")
