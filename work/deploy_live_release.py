@@ -16,6 +16,7 @@ for source in (build/'_internal').rglob('*'):
         target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target)
 for name in ('runtime.py','core.py','bo2spanims.py','library.py','mw2_assets.py','camera.py','live_target.py','replay_hotkey.py','freelook.py'):
     shutil.copy2(workspace/'work/porter'/name,root/'source'/name)
+shutil.copytree(workspace/'work/porter/assets',root/'source/assets',dirs_exist_ok=True)
 shutil.copy2(workspace/'work/README-v2.txt',root/'README.txt')
 report=json.loads((root/'Validation.json').read_text())
 report.update({
