@@ -3,13 +3,14 @@
 The window is a retro-terminal theme built from one HSL accent color (Settings tab).
 All behavior lives in core.Core; this module only draws it and forwards user input.
 """
-import ctypes,sys,threading,time
+import ctypes,os,sys,threading,time
 from pathlib import Path
 from ctypes import wintypes
 from PySide6 import QtCore,QtGui,QtWidgets
 from PySide6.QtCore import Qt
 from core import Core,GAMES,THEME_PRESETS,DEFAULT_THEME,k
 from movement import LIMITS as MOVEMENT_LIMITS
+from logfile import install_crash_hooks
 
 APP_NAME='BO2SPANIMS'
 CHANNEL_URL='https://www.youtube.com/@Yorojiii' # The watermark opens the creator's channel.
@@ -538,7 +539,12 @@ class Window(QtWidgets.QMainWindow):
         layout.addWidget(self.layers,2)
         use=self.action_button('use_highlighted','Use highlighted target',self.use_highlighted)
         layout.addLayout(row(use,label('Choose a Body layer for a full-character animation.',name='muted'),self.live_label,stretch_at=2))
-        layout.addWidget(label('LOG',name='section'));self.log=QtWidgets.QPlainTextEdit();self.log.setReadOnly(True);layout.addWidget(self.log,1);return page
+        copy=self.plain_button('Copy log for support',self.copy_support_log);folder=self.plain_button('Open log folder',lambda:os.startfile(str(self.core.logfile.folder)))
+        copy.setToolTip('Copies your setup and the recent log, with your Windows username hidden, to paste when asking for help.')
+        layout.addLayout(row(label('LOG',name='section'),label('Also saved to logs/bo2spanims.log (the previous session is bo2spanims.old.log).',name='muted'),copy,folder,stretch_at=2))
+        self.log=QtWidgets.QPlainTextEdit();self.log.setReadOnly(True);layout.addWidget(self.log,1);return page
+    def copy_support_log(self):
+        QtGui.QGuiApplication.clipboard().setText(self.core.support_text());self.core.set_status('Support log copied. Paste it wherever you’re asking for help.')
     def build_about(self):
         scroll=QtWidgets.QScrollArea();scroll.setWidgetResizable(True);page=QtWidgets.QWidget();scroll.setWidget(page)
         layout=QtWidgets.QVBoxLayout(page);layout.setContentsMargins(0,6,12,0);layout.setSpacing(8)
@@ -801,6 +807,7 @@ def main():
     try:
         if sys.platform=='win32' and not getattr(sys,'frozen',False): # From source, group under our icon instead of python.exe's.
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('Yoroji.BO2SPAnims')
+        install_crash_hooks()
         app=QtWidgets.QApplication(sys.argv);app.setApplicationName(APP_NAME);app.setWindowIcon(QtGui.QIcon(str(ASSETS/'app.ico')))
         if duplicate:QtWidgets.QMessageBox.information(None,'Already open','BO2SPAnims is already running. Use the existing window.');return
         window=Window();window.show();app.exec()

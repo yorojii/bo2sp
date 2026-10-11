@@ -20,6 +20,7 @@ from live_target import LiveTargetReader,AnimationChanging
 from replay_hotkey import HotkeyListener,KEYS,GAME_KEYS,key_name
 from freelook import Freelook
 from movement import Movement,LIMITS as MOVEMENT_LIMITS,clamp_percent
+from logfile import LogFile,setup_info
 
 ROOT=Path(sys.executable).resolve().parent if getattr(sys,'frozen',False) else Path(__file__).resolve().parent
 TOOLS=ROOT/'tools';STATE=ROOT/'state';STATE.mkdir(exist_ok=True)
@@ -186,9 +187,9 @@ def decode_share(text):
 
 class Core:
     def __init__(self,ui):
-        self.ui=ui;self.mapping={};self.targets=[];self.catalog=[];self.session=None;self.stop_event=threading.Event();self.worker=None;self.indexthread=None;self.lock=threading.Lock();self.closing=False
+        self.ui=ui;self.logfile=LogFile(ROOT);self.status='';self.mapping={};self.targets=[];self.catalog=[];self.session=None;self.stop_event=threading.Event();self.worker=None;self.indexthread=None;self.lock=threading.Lock();self.closing=False
         self.cod4='';self.bo2='';self.mw2='';self.building=False;self.build_cancel=threading.Event()
-        profile=read_profile(lambda text:self.post(lambda:self.ui.append_log(text)))
+        profile=read_profile(self.log)
         try:
             self.cod4=profile['cod4'];self.bo2=profile['bo2'];self.mw2=profile.get('mw2',self.mw2)
             self.mapping={name:str((ROOT/path).resolve()) for name,path in profile.get('mapping',{}).items() if (ROOT/path).is_file()};self.targets=profile.get('targets',[])
@@ -216,6 +217,7 @@ class Core:
         theme=profile.get('theme',{});self.theme={**DEFAULT_THEME,**{key:theme[key] for key in DEFAULT_THEME if key in theme}}
         self.replay_note='';self.replay_error_shown=False
         self.read_library();self.update_target_note()
+        self.logfile.header(setup_info(ROOT,self.bo2,len(self.catalog),len(self.mapping)))
         self.observer=threading.Thread(target=self.observe_game,name='Live target observer');self.observer.start()
         self.hotkey=HotkeyListener();self.freelook=Freelook();self.mover=Movement()
         if folders_found:self.save()
@@ -223,8 +225,12 @@ class Core:
     # Plumbing
     def post(self,fn):
         if not self.closing:self.ui.post(fn)
-    def log(self,text):self.post(lambda:self.ui.append_log(str(text)))
-    def set_status(self,text):self.status=text;self.ui.changed('status')
+    def log(self,text):self.logfile.write(text);self.post(lambda:self.ui.append_log(str(text))) # From any thread.
+    def write_log(self,text):self.logfile.write(text);self.ui.append_log(text) # UI thread only.
+    def set_status(self,text):
+        if text!=self.status:self.logfile.write(text,'status')
+        self.status=text;self.ui.changed('status')
+    def support_text(self):return self.logfile.support_text()
     def set_live(self,text):self.live=text;self.ui.changed('live')
     def idle(self):return not ((self.worker and self.worker.is_alive()) or (self.indexthread and self.indexthread.is_alive()))
     def editable(self):return not self.closing and not (self.indexthread and self.indexthread.is_alive())
@@ -494,11 +500,11 @@ class Core:
         pid=self.session.pid if self.session else self.last_snapshot.get('pid',0)
         self.hotkey.configure(self.bindings(active=True),pid)
         self.freelook.degrees_per_pixel=self.freelook_speed;self.freelook.configure(self.freelook_vk,pid,self.freelook_enabled and bool(self.freelook_vk))
-        if self.freelook.error:self.ui.append_log('Freelook: '+self.freelook.error);self.freelook.error=None
+        if self.freelook.error:self.write_log('Freelook: '+self.freelook.error);self.freelook.error=None
         self.mover.update(pid,self.movement)
-        if self.mover.error:self.ui.append_log('Movement: '+self.mover.error);self.mover.error=None
+        if self.mover.error:self.write_log('Movement: '+self.mover.error);self.mover.error=None
         if self.hotkey.error and not self.replay_error_shown:
-            self.ui.append_log('Hotkeys unavailable: '+self.hotkey.error+'. The buttons still work.');self.replay_error_shown=True
+            self.write_log('Hotkeys unavailable: '+self.hotkey.error+'. The buttons still work.');self.replay_error_shown=True
         while True:
             try:event=self.hotkey.events.get_nowait()
             except queue.Empty:break
@@ -693,5 +699,8 @@ class Core:
     def stop(self):self.stop_event.set();self.worker_wake.set();self.set_status('Stopping and restoring the current session…')
 
     # Shutdown: stop every thread; the UI closes once finished() is True.
-    def close(self):self.stop_event.set();self.worker_wake.set();self.observe_stop.set();self.hotkey.stop();self.freelook.stop();self.mover.restore(quiet=True);self.closing=True
-    def finished(self):return self.idle() and not self.observer.is_alive() and not self.hotkey.is_alive() and not self.freelook.is_alive()
+    def close(self):self.logfile.write('closing: restoring the game and stopping');self.stop_event.set();self.worker_wake.set();self.observe_stop.set();self.hotkey.stop();self.freelook.stop();self.mover.restore(quiet=True);self.closing=True
+    def finished(self):
+        done=self.idle() and not self.observer.is_alive() and not self.hotkey.is_alive() and not self.freelook.is_alive()
+        if done and self.closing and self.logfile.file:self.logfile.write('closed');self.logfile.close() # Lets the next session rotate it.
+        return done

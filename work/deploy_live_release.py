@@ -14,7 +14,7 @@ for source in (build/'_internal').rglob('*'):
     target=root/'_internal'/source.relative_to(build/'_internal')
     if not target.is_file() or source.read_bytes()!=target.read_bytes():
         target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target)
-for name in ('runtime.py','core.py','bo2spanims.py','library.py','mw2_assets.py','camera.py','live_target.py','replay_hotkey.py','freelook.py','movement.py'):
+for name in ('runtime.py','core.py','bo2spanims.py','library.py','mw2_assets.py','camera.py','live_target.py','replay_hotkey.py','freelook.py','movement.py','logfile.py'):
     shutil.copy2(workspace/'work/porter'/name,root/'source'/name)
 shutil.copytree(workspace/'work/porter/assets',root/'source/assets',dirs_exist_ok=True)
 shutil.copy2(workspace/'work/README-v2.txt',root/'README.txt')
