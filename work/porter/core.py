@@ -25,6 +25,8 @@ from logfile import LogFile,setup_info
 ROOT=Path(sys.executable).resolve().parent if getattr(sys,'frozen',False) else Path(__file__).resolve().parent
 TOOLS=ROOT/'tools';STATE=ROOT/'state';STATE.mkdir(exist_ok=True)
 GAMES=('CoD4','MW2 Actors','MW3 Actors','BO2 SP','BO2 Zombies')
+# Shown in tabs and filters. The catalog keeps the names above, which favorites, saved sets and share codes use.
+SHORT={'CoD4':'COD4','MW2 Actors':'MW2','MW3 Actors':'MW3','BO2 SP':'BO2 SP','BO2 Zombies':'BO2 ZM'}
 DEFAULT_THEME={'h':32,'s':100,'l':52,'glow':True,'style':'terminal','glass':10} # glass: iOS darkening tint 0-60% over the see-through backdrop. # style: 'terminal', 'glass' (shown as iOS) or 'android' (a deliberately low-quality joke); glass: tint 0-100.
 THEME_PRESETS={'Amber':(32,100,52),'Phosphor':(130,90,50),'Cyan':(190,95,55),'Magenta':(320,85,62),'Mono':(0,0,85)}
 
@@ -189,7 +191,7 @@ def decode_share(text):
 class Core:
     def __init__(self,ui):
         self.ui=ui;self.logfile=LogFile(ROOT);self.status='';self.mapping={};self.targets=[];self.catalog=[];self.session=None;self.stop_event=threading.Event();self.worker=None;self.indexthread=None;self.lock=threading.Lock();self.closing=False
-        self.cod4='';self.bo2='';self.mw2='';self.mw3='';self.building=False;self.build_cancel=threading.Event()
+        self.cod4='';self.bo2='';self.mw2='';self.mw3='';self.build_picks={};self.building=False;self.build_cancel=threading.Event()
         profile=read_profile(self.log)
         try:
             self.cod4=profile['cod4'];self.bo2=profile['bo2'];self.mw2=profile.get('mw2',self.mw2);self.mw3=profile.get('mw3',self.mw3)
@@ -577,20 +579,32 @@ class Core:
         if changes:self.log('Found game folders — '+'; '.join(changes))
         if changes and save:self.save()
         self.ui.changed('folders');return found
+    def build_choices(self):
+        """(game, folder found, clips in the library, ticked) for the Build libraries row. A game is ticked by default
+        when its folder is found and it has no clips yet, so games already built are skipped; the user can tick them to rebuild."""
+        from library import game_zones,FOLDER_KEY
+        rows=[]
+        for game in GAMES:
+            found=game_zones(game,getattr(self,FOLDER_KEY[game]))is not None;count=sum(x['game']==game for x in self.catalog)
+            rows.append((game,found,count,found and self.build_picks.get(game,count==0)))
+        return rows
+    def pick_build(self,game,on):self.build_picks[game]=bool(on);self.ui.changed('build')
     def reindex(self):
-        """Build libraries from every installed game (one click). Pressing it again while building cancels."""
+        """Build the ticked games' libraries (one click). Pressing it again while building cancels."""
         if self.building:self.build_cancel.set();self.set_status('Cancelling the library build…');return
         if not self.idle():return
+        games=[game for game,found,count,ticked in self.build_choices() if ticked]
+        if not games:self.set_status('Nothing to build: every game found is already in the library. Tick a game to rebuild it.');return
         folders={'cod4':self.cod4,'mw2':self.mw2,'mw3':self.mw3,'bo2':self.bo2};old=[dict(x) for x in self.catalog]
         self.building=True;self.build_cancel.clear();self.set_status('Building libraries…')
         def progress(done,total,text):self.post(lambda:self.set_status(f'Building libraries: {done}/{total} zones • {text}' if done<total else 'Building libraries: finishing…'))
         def work():
             try:
                 from library import index_libraries
-                result=index_libraries(folders,ROOT/'library',TOOLS/'Unlinker.exe',self.log,lambda:self.closing or self.build_cancel.is_set(),progress)
+                result=index_libraries(folders,ROOT/'library',TOOLS/'Unlinker.exe',self.log,lambda:self.closing or self.build_cancel.is_set(),progress,games)
                 if result is None:self.post(lambda:self.set_status('Library build cancelled. Build again to continue where it stopped.'));return
                 catalog,built,skipped=result
-                kept=[x for x in old if x['game'] in skipped] # A game that isn't installed keeps its existing clips.
+                kept=[x for x in old if x['game'] not in built] # Games not built (unticked or not installed) keep their clips.
                 for item in catalog+kept:
                     try:item['path']=str(Path(item['path']).resolve().relative_to(ROOT))
                     except ValueError:item['path']=str(Path(item['path']).resolve()) # Clips outside the tool folder stay absolute.
@@ -608,7 +622,9 @@ class Core:
         self.mapping={target:moved(path) for target,path in self.mapping.items()};self.replay_path=moved(self.replay_path) if self.replay_path else ''
         self.save();self.refresh()
         counts=', '.join(f"{game} {sum(x['game']==game for x in self.catalog):,}" for game in GAMES if any(x['game']==game for x in self.catalog))
-        self.set_status(f'Libraries built: {counts}.'+(f" Not installed, kept as they were: {', '.join(skipped)}." if skipped else ''))
+        rest=[game for game in GAMES if game not in built]
+        self.build_picks={};self.ui.changed('build') # Back to the defaults: what was just built is now skipped.
+        self.set_status(f"Built {', '.join(built) or 'nothing'}. Library: {counts}."+(f" Kept as they were: {', '.join(rest)}." if rest else '')+(f" Folder not found: {', '.join(skipped)}." if skipped else ''))
     def enable_camera(self):
         try:
             path=install_camera(self.bo2)

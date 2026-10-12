@@ -8,7 +8,8 @@ from pathlib import Path
 from ctypes import wintypes
 from PySide6 import QtCore,QtGui,QtWidgets
 from PySide6.QtCore import Qt
-from core import Core,GAMES,THEME_PRESETS,DEFAULT_THEME,k
+from core import Core,GAMES,SHORT,THEME_PRESETS,DEFAULT_THEME,k
+LONG={short:game for game,short in SHORT.items()}
 from movement import LIMITS as MOVEMENT_LIMITS
 from logfile import install_crash_hooks
 
@@ -248,7 +249,7 @@ class ClipModel(QtCore.QAbstractTableModel):
         if role!=Qt.DisplayRole:return None
         if column==0:return '★' if starred else '☆' if index.row()==self.hover else ''
         if column==1:return item['name']
-        if column==2:return f"{item['game']} · {item['zone']}" if self.game=='Favorites' else item['zone']
+        if column==2:return f"{SHORT.get(item['game'],item['game'])} · {item['zone']}" if self.game=='Favorites' else item['zone']
         if column==3:return f"{item['frames']/item['fps']:.2f}"
         if column==4:return 'yes' if item['loop'] else 'no'
         return item['bones']
@@ -306,10 +307,12 @@ class LibraryTab(QtWidgets.QWidget):
     def selected(self):
         index=self.table.currentIndex();return self.model.rows[index.row()] if index.isValid() and index.row()<len(self.model.rows) else None
     def reload_zones(self):
-        current=self.zone.currentText() or 'All';self.zone.blockSignals(True);self.zone.clear();self.zone.addItems(['All',*self.core.zones(self.game)])
-        self.zone.setCurrentText(current if current in ['All',*self.core.zones(self.game)] else 'All');self.zone.blockSignals(False);self.render()
+        zones=self.core.zones(self.game);names=[SHORT[g] for g in GAMES if g in zones] if self.game=='Favorites' else zones # Favorites filters by game, in tab order.
+        current=self.zone.currentText() or 'All';self.zone.blockSignals(True);self.zone.clear();self.zone.addItems(['All',*names])
+        self.zone.setCurrentText(current if current in ['All',*names] else 'All');self.zone.blockSignals(False);self.render()
     def render(self):
-        rows=self.core.clips(self.game,self.query.text(),self.zone.currentText() or 'All');self.model.set_rows(rows)
+        zone=self.zone.currentText() or 'All';zone=LONG.get(zone,zone) if self.game=='Favorites' else zone
+        rows=self.core.clips(self.game,self.query.text(),zone);self.model.set_rows(rows)
         self.count.setText(f'{len(rows):,} favorite clips • click the ★ beside a clip to remove it; hover the ☆ column in any library to add one' if self.game=='Favorites' else f'{len(rows):,} character clips • hover the first column and click ☆ to favorite • looping slots for movement, death slots for deaths')
 
 class TrafficLight(QtWidgets.QAbstractButton):
@@ -446,6 +449,15 @@ class Window(QtWidgets.QMainWindow):
     def focus_neutral(self):self.setFocus()
 
     # Widgets
+    def show_game_tabs(self):
+        """A game's tab shows only once the library has clips from that game."""
+        present={x['game'] for x in self.core.catalog}
+        for game in GAMES:self.tabs.setTabVisible(self.tabs.indexOf(self.libraries[game]),game in present)
+    def render_build(self):
+        for game,found,count,ticked in self.core.build_choices():
+            box=self.build_boxes[game];box.blockSignals(True);box.setChecked(ticked);box.setEnabled(found and not self.core.building);box.blockSignals(False)
+            name=SHORT[game];box.setText(f"{name} ({count:,})" if count else name if found else f'{name} (not found)')
+            box.setToolTip('Already in your library: tick to rebuild it.' if count and found else 'Folder not found: set it under Game folders.' if not found else 'Not in your library yet.')
     def render_movement(self):
         custom=[key for key in MOVEMENT_LIMITS if self.core.movement[key]!=100]
         for key,(slider,value) in self.movement_sliders.items():
@@ -506,7 +518,7 @@ class Window(QtWidgets.QMainWindow):
         self.tabs=QtWidgets.QTabWidget();self.tabs.setDocumentMode(True);layout.addWidget(self.tabs,1)
         self.libraries={}
         for game in ('Favorites',*GAMES):
-            tab=LibraryTab(self,game);self.libraries[game]=tab;self.tabs.addTab(tab,'★ Favorites' if game=='Favorites' else game)
+            tab=LibraryTab(self,game);self.libraries[game]=tab;self.tabs.addTab(tab,'★ Favorites' if game=='Favorites' else SHORT[game])
         self.tabs.addTab(self.build_replacements(),'Replacements');self.tabs.addTab(self.build_debug(),'Debug');self.tabs.addTab(self.build_settings(),'Settings');self.tabs.addTab(self.build_about(),'About')
         layout.addWidget(rule())
         self.status=label();self.status.setWordWrap(True);self.hints=label('',name='muted');self.watermark=Watermark(self)
@@ -612,8 +624,12 @@ class Window(QtWidgets.QMainWindow):
         importer=self.action_button('import_file','Import animation file…',self.core.import_clip)
         self.reindex_button=self.action_button('refresh_libraries','Build libraries',self.core.reindex)
         camera=self.action_button('enable_camera','Install third person plugin',self.core.enable_camera)
-        layout.addLayout(row(self.basics,importer,self.reindex_button,camera,stretch_at=4))
-        layout.addWidget(label('Build libraries extracts every installed game’s character animations in one go (missing games are skipped and keep their clips). Click again to cancel; building again resumes.',name='muted'))
+        layout.addLayout(row(self.basics,importer,camera,stretch_at=3))
+        self.build_boxes={}
+        for game in GAMES:
+            box=QtWidgets.QCheckBox(game);box.setFocusPolicy(Qt.NoFocus);box.toggled.connect(lambda on,game=game:self.core.pick_build(game,on));self.build_boxes[game]=box
+        layout.addLayout(row(self.reindex_button,*self.build_boxes.values(),stretch_at=len(GAMES)+1,spacing=14))
+        build_help=label('Ticked games are extracted when you click Build libraries. Games already in your library start unticked, so they’re skipped; tick one to rebuild it. Games whose folder wasn’t found can’t be ticked. Click again to cancel; building again resumes.',name='muted');build_help.setWordWrap(True);layout.addWidget(build_help)
         layout.addWidget(label('Closing BO2SPAnims restores BO2’s original animations.',name='muted'));layout.addStretch(1);return scroll
 
     # Actions needing widget state
@@ -645,6 +661,7 @@ class Window(QtWidgets.QMainWindow):
                 self.import_chip.setText(f'imports ● {len(session.imported)} live' if running and session else 'imports ● starting' if running else 'imports ○ off');self.live_label.setText(core.live)
             elif field=='catalog':
                 for tab in self.libraries.values():tab.reload_zones()
+                self.render_build();self.show_game_tabs()
             elif field=='favorites':
                 for game,tab in self.libraries.items():
                     if game=='Favorites':tab.render()
@@ -659,9 +676,11 @@ class Window(QtWidgets.QMainWindow):
             elif field=='snapshot':self.render_snapshot()
             elif field=='busy':
                 idle=core.idle();self.launch.setEnabled(idle);self.basics.setEnabled(idle);self.reindex_button.setEnabled(idle or core.building)
-                self.reindex_button.setProperty('base','Cancel build' if core.building else 'Build libraries');self.render_hotkeys();self.changed('live')
+                self.reindex_button.setProperty('base','Cancel build' if core.building else 'Build libraries');self.render_hotkeys();self.render_build();self.changed('live')
+            elif field=='build':self.render_build()
             elif field=='folders':
                 for key,edit in self.folder_edits.items():edit.setText(getattr(core,key))
+                self.render_build()
             elif field=='theme':self.apply_theme()
     def render_slots(self):
         for box in self.slots:

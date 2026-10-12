@@ -19,8 +19,12 @@ def pump(seconds=0.3):
 try:
     pump()
     tabs=[window.tabs.tabText(i).split(' ')[0] if not window.tabs.tabText(i).startswith('★') else 'Favorites' for i in range(window.tabs.count())]
-    assert tabs==['Favorites','CoD4','MW2','MW3','BO2','BO2','Replacements','Debug','Settings','About'],tabs;result['tabs']=[window.tabs.tabText(i) for i in range(window.tabs.count())]
+    assert tabs==['Favorites','COD4','MW2','MW3','BO2','BO2','Replacements','Debug','Settings','About'],tabs;result['tabs']=[window.tabs.tabText(i) for i in range(window.tabs.count())]
     c=window.core
+    mw3=window.tabs.indexOf(window.libraries['MW3 Actors']);assert window.tabs.isTabVisible(mw3)
+    full=c.catalog;c.catalog=[x for x in full if x['game']!='MW3 Actors'];window.changed('catalog');assert not window.tabs.isTabVisible(mw3)
+    c.catalog=full;window.changed('catalog');assert window.tabs.isTabVisible(mw3);result['empty_game_tab_hidden']=True
+    assert window.tabs.tabText(window.tabs.indexOf(window.libraries['BO2 Zombies']))=='BO2 ZM';result['short_tab_names']=True
     assert window.apply_button.text()==f'[{c.apply_name}] Apply anim';result['apply_button_shows_key']=window.apply_button.text()
     assert 'use_clip:CoD4' not in window.buttons and 'lock_target' not in window.buttons;result['use_clip_and_lock_have_no_hotkey']=True
     c.last_snapshot={'ready':True,'primary':{'target':'pb_crouch_alert'}};c.detected_at=time.monotonic()

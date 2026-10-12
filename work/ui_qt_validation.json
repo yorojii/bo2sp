@@ -1,16 +1,18 @@
 {
   "tabs": [
     "\u2605 Favorites",
-    "CoD4",
-    "MW2 Actors",
-    "MW3 Actors",
+    "COD4",
+    "MW2",
+    "MW3",
     "BO2 SP",
-    "BO2 Zombies",
-    "Replacements 12",
+    "BO2 ZM",
+    "Replacements 2",
     "Debug",
     "Settings",
     "About"
   ],
+  "empty_game_tab_hidden": true,
+  "short_tab_names": true,
   "apply_button_shows_key": "[B] Apply anim",
   "use_clip_and_lock_have_no_hotkey": true,
   "lock_checkbox": true,

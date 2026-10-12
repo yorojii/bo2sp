@@ -57,12 +57,13 @@ def unsigned(ff):
         with open(ff,'rb') as f:return f.read(8)==b'IWffu100'
     except OSError:return False
 
-def index_libraries(folders,root,unlinker,log,stopped=lambda:False,progress=lambda done,total,text:None):
-    """folders: {'cod4','mw2','mw3','bo2'} paths. Returns (catalog, built games, skipped games), or None if stopped."""
+def index_libraries(folders,root,unlinker,log,stopped=lambda:False,progress=lambda done,total,text:None,games=None):
+    """folders: {'cod4','mw2','mw3','bo2'} paths; games: which of GAMES to build (all when None).
+    Returns (catalog of the built games, built games, skipped games whose folder is missing), or None if stopped."""
     root=Path(root);unlinker=Path(unlinker)
     if not unlinker.exists():raise FileNotFoundError('tools/Unlinker.exe is missing. Keep the whole BO2SPAnims folder together.')
     plan=[];skipped=[]
-    for game in GAMES:
+    for game in (GAMES if games is None else [g for g in GAMES if g in games]):
         files=game_zones(game,folders.get(FOLDER_KEY[game]))
         if files is None:skipped.append(game);log(f'{game}: game folder not found; skipped.')
         else:plan.append((game,files))

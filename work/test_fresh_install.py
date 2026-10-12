@@ -51,7 +51,11 @@ sp=next(x for x in catalog if x['game']=='BO2 SP');cod4=next(x for x in catalog 
 (root/'profile.json').write_text(json.dumps({'cod4':'','mw2':'','bo2':'','mapping':{'pb_stand_alert':sp['path'],'pb_crouch_alert':cod4['path']},'targets':[],'replay':{'key':'F6','vk':0x75,'enabled':True,'target':'pb_stand_alert','source':sp['path']}}))
 ui=FakeUI();app=core.Core(ui);app.start=lambda:None
 try:
-    ui.pump(0.2);result['rebuild_seconds']=build(app,ui)
+    ui.pump(0.2)
+    assert not any(ticked for game,found,count,ticked in app.build_choices()),'Built games should start unticked'
+    for game,found,count,ticked in app.build_choices():
+        if found:app.pick_build(game,True) # Rebuild every installed game on purpose.
+    result['rebuild_seconds']=build(app,ui)
     counts={game:sum(x['game']==game for x in app.catalog) for game in core.GAMES};result['rebuild_counts']=counts
     assert counts['CoD4']==2171 and counts['MW2 Actors']==3047,counts;result['missing_games_keep_clips']=True
     key=lambda path:next(app.clip_key(x) for x in app.catalog if x['path']==path)

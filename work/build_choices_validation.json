@@ -1,0 +1,39 @@
+{
+  "defaults": {
+    "CoD4": {
+      "found": false,
+      "clips": 2171,
+      "ticked": false
+    },
+    "MW2 Actors": {
+      "found": false,
+      "clips": 3047,
+      "ticked": false
+    },
+    "MW3 Actors": {
+      "found": true,
+      "clips": 4418,
+      "ticked": false
+    },
+    "BO2 SP": {
+      "found": true,
+      "clips": 7222,
+      "ticked": false
+    },
+    "BO2 Zombies": {
+      "found": true,
+      "clips": 2218,
+      "ticked": false
+    }
+  },
+  "all_built_skips": "Nothing to build: every game found is already in the library. Tick a game to rebuild it.",
+  "only_ticked_game_rebuilt": {
+    "MW3 Actors": 1,
+    "CoD4": 2171,
+    "MW2 Actors": 3047,
+    "BO2 SP": 7222,
+    "BO2 Zombies": 2218
+  },
+  "status": "Built MW3 Actors. Library: CoD4 2,171, MW2 Actors 3,047, MW3 Actors 1, BO2 SP 7,222, BO2 Zombies 2,218. Kept as they were: CoD4, MW2 Actors, BO2 SP, BO2 Zombies.",
+  "choices_reset_after_build": true
+}
