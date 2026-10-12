@@ -34,6 +34,6 @@
     "BO2 SP": 7222,
     "BO2 Zombies": 2218
   },
-  "status": "Built MW3 Actors. Library: CoD4 2,171, MW2 Actors 3,047, MW3 Actors 1, BO2 SP 7,222, BO2 Zombies 2,218. Kept as they were: CoD4, MW2 Actors, BO2 SP, BO2 Zombies.",
+  "status": "Built MW3. Library: COD4 2,171, MW2 3,047, MW3 1, BO2 SP 7,222, BO2 ZM 2,218. Kept as they were: COD4, MW2, BO2 SP, BO2 ZM.",
   "choices_reset_after_build": true
 }

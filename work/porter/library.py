@@ -25,6 +25,9 @@ def bo2_zombies(ff):
 # kind: (catalog game, zone filter, zone credited first for clips shared between zones)
 BO2_LIBRARIES={'sp':('BO2 SP',bo2_single_player,'common'),'zombies':('BO2 Zombies',bo2_zombies,'common_zm')}
 GAMES=('CoD4','MW2 Actors','MW3 Actors','BO2 SP','BO2 Zombies')
+# Shown everywhere in the UI and logs. The catalog keeps the names in GAMES, which favorites, saved sets and share codes use.
+SHORT={'CoD4':'COD4','MW2 Actors':'MW2','MW3 Actors':'MW3','BO2 SP':'BO2 SP','BO2 Zombies':'BO2 ZM'}
+def short(game):return SHORT.get(game,game)
 FOLDER_KEY={'CoD4':'cod4','MW2 Actors':'mw2','MW3 Actors':'mw3','BO2 SP':'bo2','BO2 Zombies':'bo2'}
 
 def language_zone(folder):
@@ -65,14 +68,14 @@ def index_libraries(folders,root,unlinker,log,stopped=lambda:False,progress=lamb
     plan=[];skipped=[]
     for game in (GAMES if games is None else [g for g in GAMES if g in games]):
         files=game_zones(game,folders.get(FOLDER_KEY[game]))
-        if files is None:skipped.append(game);log(f'{game}: game folder not found; skipped.')
+        if files is None:skipped.append(game);log(f'{short(game)}: game folder not found; skipped.')
         else:plan.append((game,files))
     total=sum(len(files) for game,files in plan);done=0;catalog=[]
     for game,files in plan:
         seen=set();bo2_game=any(g==game for g,_,_ in BO2_LIBRARIES.values())
         for ff in files:
             if stopped():return None
-            progress(done,total,f'{game} · {ff.stem}')
+            progress(done,total,f'{short(game)} · {ff.stem}')
             key=hashlib.sha256(str(ff.resolve()).lower().encode()).hexdigest()[:16]
             cache=root/'cache'/key;cache.mkdir(parents=True,exist_ok=True)
             stamp={'size':ff.stat().st_size,'modified':ff.stat().st_mtime_ns};meta=cache/'zone.json'
@@ -97,7 +100,7 @@ def index_libraries(folders,root,unlinker,log,stopped=lambda:False,progress=lamb
                 if identity in seen:continue # The same clip in several zones is credited to the first zone.
                 seen.add(identity);catalog.append(item)
             done+=1
-        log(f'{game}: {sum(x["game"]==game for x in catalog):,} clips from {len(files)} zones.')
+        log(f'{short(game)}: {sum(x["game"]==game for x in catalog):,} clips from {len(files)} zones.')
     progress(total,total,'done')
     return catalog,[game for game,files in plan],skipped
 

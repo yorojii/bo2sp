@@ -20,6 +20,6 @@
   "load_asks_before_replacing": true,
   "favorites_reload": true,
   "sets_reload": true,
-  "missing_clip_reported": "Loaded \"Scene one\": 3 replacements, 1 missing clips skipped (CoD4/nowhere/missing_clip).",
+  "missing_clip_reported": "Loaded \"Scene one\": 3 replacements, 1 missing clips skipped (COD4/nowhere/missing_clip).",
   "delete_keeps_current": true
 }

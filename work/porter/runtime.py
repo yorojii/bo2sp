@@ -26,7 +26,7 @@ class Reader:
 def decode(data):
     r=Reader(data);version,stored,bones,flags,kind,fps=r.unpack('HHHBBH')
     if version not in (17,18,19) or flags&~(7 if version in (18,19) else 3) or not fps or bones>255:
-        raise ValueError('Expected a CoD4 v17 or compatible v19 body animation')
+        raise ValueError('Expected a COD4 v17 or compatible v19 body animation')
     loop=bool(flags&1);frames=stored if loop else stored-1;coverage=frames+1
     if frames<0:raise ValueError('Invalid frame count')
     def indices(n):return list(range(n)) if n>=coverage else list(r.unpack(('B' if frames<256 else 'H')*n))

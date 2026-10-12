@@ -25,8 +25,7 @@ from logfile import LogFile,setup_info
 ROOT=Path(sys.executable).resolve().parent if getattr(sys,'frozen',False) else Path(__file__).resolve().parent
 TOOLS=ROOT/'tools';STATE=ROOT/'state';STATE.mkdir(exist_ok=True)
 GAMES=('CoD4','MW2 Actors','MW3 Actors','BO2 SP','BO2 Zombies')
-# Shown in tabs and filters. The catalog keeps the names above, which favorites, saved sets and share codes use.
-SHORT={'CoD4':'COD4','MW2 Actors':'MW2','MW3 Actors':'MW3','BO2 SP':'BO2 SP','BO2 Zombies':'BO2 ZM'}
+from library import SHORT,short # Display names: COD4 / MW2 / MW3 / BO2 SP / BO2 ZM.
 DEFAULT_THEME={'h':32,'s':100,'l':52,'glow':True,'style':'terminal','glass':10} # glass: iOS darkening tint 0-60% over the see-through backdrop. # style: 'terminal', 'glass' (shown as iOS) or 'android' (a deliberately low-quality joke); glass: tint 0-100.
 THEME_PRESETS={'Amber':(32,100,52),'Phosphor':(130,90,50),'Cyan':(190,95,55),'Magenta':(320,85,62),'Mono':(0,0,85)}
 
@@ -157,7 +156,7 @@ def scan(cod4,bo2,log=print):
     sourceff=cod4/'zone/english/common_mp.ff'
     if not sourceff.exists():
         found=list((cod4/'zone').glob('*/common_mp.ff'))
-        if len(found)!=1:raise FileNotFoundError('Cannot find CoD4 zone/<language>/common_mp.ff.')
+        if len(found)!=1:raise FileNotFoundError('Cannot find COD4 zone/<language>/common_mp.ff.')
         sourceff=found[0]
     key=hashlib.sha256(str(sourceff.resolve()).lower().encode()).hexdigest()[:16]
     folder=STATE/'sources'/key
@@ -168,7 +167,7 @@ def scan(cod4,bo2,log=print):
         cached.write_text(json.dumps(stamp))
     sources=folder/'xanim';keywords=('death','run','walk','sprint','jump','crawl','alert','ads','hold','prone2','crouch2')
     mapping={name:str(sources/name) for name in sorted(set(targets)) if (sources/name).exists() and any(word in name for word in keywords)}
-    if not mapping:raise ValueError('No compatible basic CoD4 body animations were found.')
+    if not mapping:raise ValueError('No compatible basic COD4 body animations were found.')
     for path in mapping.values():decode(Path(path).read_bytes())
     log(f'Ready: {len(mapping)} basic animations, including {sum("death" in n for n in mapping)} deaths.')
     return mapping,sorted(set(targets))
@@ -239,10 +238,12 @@ class Core:
     def editable(self):return not self.closing and not (self.indexthread and self.indexthread.is_alive())
     def busy_changed(self):self.ui.changed('busy')
     def clip_key(self,item):return f"{item['game']}/{item['zone']}/{item['name']}"
+    @staticmethod
+    def shown_key(key):game,_,rest=key.partition('/');return f'{short(game)}/{rest}' # A clip key as the UI names games.
     def clip_for_path(self,path):return next((x for x in self.catalog if x['path']==path),None)
     def describe(self,path):
         item=self.clip_for_path(path)
-        return f"{item['game']}: {item['name']} ({item['zone']})" if item else (Path(path).stem if path else 'Original BO2')
+        return f"{short(item['game'])}: {item['name']} ({item['zone']})" if item else (Path(path).stem if path else 'Original BO2')
 
     # Profile
     def save(self):
@@ -329,7 +330,7 @@ class Core:
         mapping,missing=self.resolve_set(name)
         if self.mapping and self.mapping!=mapping and not self.ui.confirm('Load set',f'Replace your {len(self.mapping)} current replacements with "{name}"?'):return
         self.mapping=mapping;self.worker_wake.set();self.refresh();self.save()
-        self.set_status(f'Loaded "{name}": {len(mapping)} replacements'+(f', {len(missing)} missing clips skipped ({", ".join(missing[:3])})' if missing else '')+'.')
+        self.set_status(f'Loaded "{name}": {len(mapping)} replacements'+(f', {len(missing)} missing clips skipped ({", ".join(map(self.shown_key,missing[:3]))})' if missing else '')+'.')
         if mapping and self.last_snapshot.get('ready') and self.idle():self.start()
     # Share codes: presets as copy-paste text.
     def share_set_code(self,name=''):
@@ -355,7 +356,7 @@ class Core:
         if name in self.saved_sets and not self.ui.confirm('Replace set',f'Replace the saved set "{name}"?'):return None
         known={self.clip_key(x) for x in self.catalog};missing=[key for key in clips.values() if key not in known]
         self.saved_sets[name]={target:{'clip':key} for target,key in clips.items()};self.save();self.ui.changed('sets')
-        self.set_status(f'Saved "{name}": {len(clips)} replacements'+(f', {len(missing)} not in your library ({", ".join(missing[:3])})' if missing else '')+'. Pick it and Load set to use it.')
+        self.set_status(f'Saved "{name}": {len(clips)} replacements'+(f', {len(missing)} not in your library ({", ".join(map(self.shown_key,missing[:3]))})' if missing else '')+'. Pick it and Load set to use it.')
         return ('set',name)
     def delete_set(self,name):
         if name not in self.saved_sets:self.set_status('Choose a saved set to delete.');return
@@ -414,12 +415,12 @@ class Core:
             self.set_status('Wait for a live body animation, or lock a target and choose a slot manually.');return
         if self.target not in self.targets:self.ui.message('error','Select a BO2 slot','Choose an existing BO2 animation slot.');return
         item=self.catalog[index];target=self.target;self.mapping={**self.mapping,target:item['path']}
-        self.replay_target=target;self.replay_path=item['path'];self.queue_restart(target,item['path']);self.save();self.refresh();self.log(f"{item['game']}: {item['name']} → {target}")
+        self.replay_target=target;self.replay_path=item['path'];self.queue_restart(target,item['path']);self.save();self.refresh();self.log(f"{short(item['game'])}: {item['name']} → {target}")
         if self.last_snapshot.get('ready') and self.idle():self.start()
     def import_clip(self):
         if not self.editable():return
-        if not self.targets:self.ui.message('info','Load basics first','Load CoD4 basics to find BO2 target names.');return
-        path=self.ui.ask_file('Select a compiled CoD4 / MW2 / BO2 character animation')
+        if not self.targets:self.ui.message('info','Load basics first','Load COD4 basics to find BO2 target names.');return
+        path=self.ui.ask_file('Select a compiled COD4 / MW2 / MW3 / BO2 character animation')
         if not path:return
         try:
             anim=load_clip(path)
@@ -573,7 +574,7 @@ class Core:
         self.indexthread=threading.Thread(target=work);self.indexthread.start();self.busy_changed()
     def detect_folders(self,save=True):
         found=detect_folders({'bo2':self.bo2,'cod4':self.cod4,'mw2':self.mw2,'mw3':self.mw3});changes=[]
-        for key,label in (('bo2','BO2 Redacted'),('cod4','CoD4'),('mw2','MW2'),('mw3','MW3')):
+        for key,label in (('bo2','BO2 Redacted'),('cod4','COD4'),('mw2','MW2'),('mw3','MW3')):
             if found[key]!=getattr(self,key):setattr(self,key,found[key]);changes.append(f'{label}: {found[key]}')
         self.folders_changed=bool(changes)
         if changes:self.log('Found game folders — '+'; '.join(changes))
@@ -621,10 +622,11 @@ class Core:
         moved=lambda path:paths.get(old_keys.get(path),path)
         self.mapping={target:moved(path) for target,path in self.mapping.items()};self.replay_path=moved(self.replay_path) if self.replay_path else ''
         self.save();self.refresh()
-        counts=', '.join(f"{game} {sum(x['game']==game for x in self.catalog):,}" for game in GAMES if any(x['game']==game for x in self.catalog))
+        counts=', '.join(f"{short(game)} {sum(x['game']==game for x in self.catalog):,}" for game in GAMES if any(x['game']==game for x in self.catalog))
         rest=[game for game in GAMES if game not in built]
         self.build_picks={};self.ui.changed('build') # Back to the defaults: what was just built is now skipped.
-        self.set_status(f"Built {', '.join(built) or 'nothing'}. Library: {counts}."+(f" Kept as they were: {', '.join(rest)}." if rest else '')+(f" Folder not found: {', '.join(skipped)}." if skipped else ''))
+        names=lambda games:', '.join(map(short,games))
+        self.set_status(f"Built {names(built) or 'nothing'}. Library: {counts}."+(f" Kept as they were: {names(rest)}." if rest else '')+(f" Folder not found: {names(skipped)}." if skipped else ''))
     def enable_camera(self):
         try:
             path=install_camera(self.bo2)
