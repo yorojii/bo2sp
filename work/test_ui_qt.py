@@ -8,6 +8,7 @@ os.environ.setdefault('QT_QPA_PLATFORM','offscreen');os.environ.setdefault('QT_Q
 from pathlib import Path
 from test_support import isolated_root
 import core
+from PySide6.QtCore import Qt
 from PySide6 import QtWidgets
 root=isolated_root('ui_qt_test',lambda profile:(profile.pop('hotkeys',None),profile.pop('theme',None),profile.pop('favorites',None)))
 core.Core.start=lambda self:None
@@ -25,6 +26,10 @@ try:
     full=c.catalog;c.catalog=[x for x in full if x['game']!='MW3 Actors'];window.changed('catalog');assert not window.tabs.isTabVisible(mw3)
     c.catalog=full;window.changed('catalog');assert window.tabs.isTabVisible(mw3);result['empty_game_tab_hidden']=True
     assert window.tabs.tabText(window.tabs.indexOf(window.libraries['BO2 Zombies']))=='BO2 ZM';result['short_tab_names']=True
+    lib3=window.libraries['MW3 Actors'];m3=lib3.model;h3=lib3.table.horizontalHeader();col3=lambda c:[m3.data(m3.index(i,c)) for i in range(m3.rowCount())]
+    h3.setSortIndicator(3,Qt.DescendingOrder);v=[float(x) for x in col3(3)];assert v==sorted(v,reverse=True)
+    h3.setSortIndicator(1,Qt.AscendingOrder);v=col3(1);assert v==sorted(v,key=str.casefold)
+    h3.setSortIndicator(5,Qt.AscendingOrder);v=col3(5);assert v==sorted(v);result['header_sorting']=True
     assert window.apply_button.text()==f'[{c.apply_name}] Apply anim';result['apply_button_shows_key']=window.apply_button.text()
     assert 'use_clip:CoD4' not in window.buttons and 'lock_target' not in window.buttons;result['use_clip_and_lock_have_no_hotkey']=True
     c.last_snapshot={'ready':True,'primary':{'target':'pb_crouch_alert'}};c.detected_at=time.monotonic()

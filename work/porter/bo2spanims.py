@@ -229,8 +229,25 @@ class Poster(QtCore.QObject):
 
 class ClipModel(QtCore.QAbstractTableModel):
     HEADERS=('★','Source animation','Scene / zone','Sec','Loop','Bones')
-    def __init__(self,core,game):super().__init__();self.core=core;self.game=game;self.rows=[];self.hover=-1
-    def set_rows(self,rows):self.beginResetModel();self.rows=rows;self.hover=-1;self.endResetModel()
+    def __init__(self,core,game):super().__init__();self.core=core;self.game=game;self.rows=[];self.hover=-1;self.order=None
+    def set_rows(self,rows):self.beginResetModel();self.rows=self.sorted(rows);self.hover=-1;self.endResetModel()
+    def sort_key(self,column):
+        """Clicking a header sorts: ★ favorites first, text columns alphabetically, Sec and Bones by value."""
+        catalog=self.core.catalog
+        def key(row):
+            item=catalog[row]
+            if column==0:return (self.core.clip_key(item) not in self.core.favorites,item['name'].casefold())
+            if column==1:return item['name'].casefold()
+            if column==2:return (SHORT.get(item['game'],item['game']).casefold() if self.game=='Favorites' else '',item['zone'].casefold(),item['name'].casefold())
+            if column==3:return item['frames']/item['fps'] if item['fps'] else 0.0
+            if column==4:return ('yes' if item['loop'] else 'no',item['name'].casefold())
+            return item['bones']
+        return key
+    def sorted(self,rows):
+        if not self.order:return list(rows) # Library order until a header is clicked.
+        column,descending=self.order;return sorted(rows,key=self.sort_key(column),reverse=descending)
+    def sort(self,column,order=Qt.AscendingOrder):
+        self.order=(column,order==Qt.DescendingOrder);self.set_rows(self.rows) # A reset, so a stale selection can't point at another clip.
     def set_hover(self,row):
         """The row under the mouse shows an outlined star to click."""
         if row==self.hover:return
@@ -280,7 +297,9 @@ class LibraryTab(QtWidgets.QWidget):
         self.model=ClipModel(self.core,game);self.table=QtWidgets.QTableView();self.table.setModel(self.model)
         self.table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows);self.table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         self.table.verticalHeader().hide();self.table.setShowGrid(False);self.table.setWordWrap(False);self.table.verticalHeader().setDefaultSectionSize(22)
-        header=self.table.horizontalHeader();header.setSectionResizeMode(1,QtWidgets.QHeaderView.Stretch);header.setHighlightSections(False);header.setDefaultAlignment(Qt.AlignLeft|Qt.AlignVCenter)
+        header=self.table.horizontalHeader();header.setSectionsClickable(True);header.setSortIndicatorShown(True);header.setSortIndicator(-1,Qt.AscendingOrder)
+        header.sortIndicatorChanged.connect(lambda column,order:column>=0 and self.model.sort(column,order)) # Click a header to sort; click again to reverse.
+        header.setSectionResizeMode(1,QtWidgets.QHeaderView.Stretch);header.setHighlightSections(False);header.setDefaultAlignment(Qt.AlignLeft|Qt.AlignVCenter)
         for column,width in ((0,28),(2,340 if game=='Favorites' else 230),(3,60),(4,50),(5,56)):self.table.setColumnWidth(column,width)
         self.table.selectionModel().currentRowChanged.connect(lambda current,previous:self.core.choose_clip(self.selected()))
         self.table.doubleClicked.connect(lambda index:index.column()!=0 and self.core.use_clip(self.selected()))

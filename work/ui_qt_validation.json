@@ -13,6 +13,7 @@
   ],
   "empty_game_tab_hidden": true,
   "short_tab_names": true,
+  "header_sorting": true,
   "apply_button_shows_key": "[B] Apply anim",
   "use_clip_and_lock_have_no_hotkey": true,
   "lock_checkbox": true,
