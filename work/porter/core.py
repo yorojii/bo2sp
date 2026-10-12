@@ -630,10 +630,10 @@ class Core:
     def enable_camera(self):
         try:
             path=install_camera(self.bo2)
-            self.log('Installed the local-match camera helper: '+str(path))
-            self.log('Start a new custom match. Third person turns on after spawning. Hold Use + scorestreak up (F + 1 with your bindings) to toggle.')
-            self.set_status('Third person plugin installed. Start a new custom match, then hold F and press 1 to switch views.')
-        except (OSError,ValueError) as e:self.log(str(e));self.set_status('Third person plugin setup stopped: '+str(e))
+            self.log('Installed the Third Person Camera: '+str(path))
+            self.log('Start a new custom match you host. Third person turns on after you spawn; hold Use and press action slot 1 (F + 1 with your bindings) to switch views.')
+            self.set_status('Third Person Camera installed. Start a new custom match you host, then hold F and press 1 to switch views.')
+        except (OSError,ValueError) as e:self.log(str(e));self.set_status('Third Person Camera setup stopped: '+str(e))
 
     # Importer
     def start(self):

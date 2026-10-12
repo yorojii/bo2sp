@@ -642,7 +642,9 @@ class Window(QtWidgets.QMainWindow):
         self.basics=self.action_button('load_basics','Load COD4 basics',self.core.load_basics)
         importer=self.action_button('import_file','Import animation file…',self.core.import_clip)
         self.reindex_button=self.action_button('refresh_libraries','Build libraries',self.core.reindex)
-        camera=self.action_button('enable_camera','Install third person plugin',self.core.enable_camera)
+        camera=self.action_button('enable_camera','Install Third Person Camera',self.core.enable_camera)
+        camera.setToolTip('Adds a small script to BO2 so you start custom matches you host in third person. In game, hold Use (F) and press\n'
+                          'action slot 1 (1) to switch between third and first person. Click again to update it; it replaces the old Yoroji camera script.')
         layout.addLayout(row(self.basics,importer,camera,stretch_at=3))
         self.build_boxes={}
         for game in GAMES:

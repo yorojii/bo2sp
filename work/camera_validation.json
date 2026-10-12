@@ -1,0 +1,9 @@
+{
+  "needs_redacted_folder": true,
+  "fresh_install": true,
+  "reinstall_is_harmless": true,
+  "renamed": true,
+  "old_script_replaced": true,
+  "edited_old_script_kept": "yoroji_third_person.gsc was edited outside BO2SPAnims. Remove it yourself first, or two camera scripts would run.",
+  "edited_script_kept": "third_person_camera.gsc was edited outside BO2SPAnims. It has been preserved."
+}
