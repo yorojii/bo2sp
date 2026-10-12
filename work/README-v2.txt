@@ -1,4 +1,4 @@
-BO2SPAnims
+BO2SP
 Animations from COD4, MW2, MW3, BO2 SP and BO2 ZM in BO2 Redacted multiplayer, applied live
 
 What it does
@@ -11,7 +11,7 @@ restore, closing the tool or restarting BO2 brings the originals back.
 First run
 1. Unzip anywhere and keep the whole folder together (_internal, tools).
    No Python or other install is needed.
-2. Open BO2SPAnims.exe. It looks for your games automatically (a running
+2. Open BO2SP.exe. It looks for your games automatically (a running
    BO2, Steam libraries, X:\Games and similar folders). Check or set them
    in Settings > Game folders.
 3. Settings > Build libraries. Tick the games to extract (games found and
@@ -73,7 +73,7 @@ pixelated joke). The accent color uses full hue / saturation / lightness.
 Getting help
 Debug > "Copy log for support" copies your setup and recent log, with your
 Windows username hidden, ready to paste. Logs are saved in logs/ (the
-previous session is kept as bo2spanims.old.log).
+previous session is kept as bo2sp.old.log).
 
 Limits
 This replaces third-person body animations only: not actor models, whole
@@ -84,15 +84,15 @@ Published animation data stays in BO2's memory until it exits; restart BO2
 after reapplying very many clips in one session.
 
 Source and licenses
-BO2SPAnims is free software under GPL-3.0 (LICENSE.txt); its source is in
+BO2SP is free software under GPL-3.0 (LICENSE.txt); its source is in
 source/. Build with Python 3.10, PySide6-Essentials 6.11.2 and
-PyInstaller 6.16 (see BO2SPAnims.spec in the repository).
+PyInstaller 6.16 (see BO2SP.spec in the repository).
 The interface uses Qt for Python (PySide6), LGPL-3.0.
 tools/Unlinker.exe is OpenAssetTools v0.33.0 (GPL-3.0); its source is
 source/OpenAssetTools-v0.33.0.zip.
 https://github.com/Laupetin/OpenAssetTools/releases/tag/v0.33.0
 References: OpenAssetTools, Greyhound (Scobalula) and T6SDK (Amyst82).
 Animation data comes from games you own and stays on your PC; none is
-included with BO2SPAnims.
+included with BO2SP.
 
 Made by Yoroji - https://www.youtube.com/@Yorojiii

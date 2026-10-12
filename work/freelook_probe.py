@@ -14,7 +14,7 @@ from core import game_pids
 
 seconds=float(sys.argv[1]) if len(sys.argv)>1 else 600
 sensitivity=float(sys.argv[2]) if len(sys.argv)>2 else 0.15
-folder=json.loads((WORK.parent/'outputs/BO2SPAnims/profile.json').read_text())['bo2']
+folder=json.loads((WORK.parent/'outputs/BO2SP/profile.json').read_text())['bo2']
 pids=game_pids(folder)
 if len(pids)!=1:sys.exit(f'Expected one BO2 process in {folder!r}, found {len(pids)}.')
 pid=pids[0];camera=CameraDvars(pid)

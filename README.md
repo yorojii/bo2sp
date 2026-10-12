@@ -1,4 +1,4 @@
-# BO2SPAnims
+# BO2SP
 
 Swap animations from other Call of Duty games into **Black Ops II Redacted multiplayer**, live, while the game is running.
 
@@ -24,7 +24,7 @@ Pick a clip from COD4, MW2, MW3 (single-player actors), BO2 SP, or BO2 ZM, choos
 
 ## Usage
 
-1. Run `BO2SPAnims.exe` (keep the whole folder together).
+1. Run `BO2SP.exe` (keep the whole folder together).
 2. On a fresh install, open **Settings → Build libraries**.
 3. Click **Launch BO2 & apply** (or start BO2 first; the tool attaches).
 4. In a match, pick a clip, choose the BO2 slot (or let Live target follow you), and press **Apply anim**.
@@ -39,10 +39,10 @@ Python 3.10+, PySide6-Essentials, and PyInstaller:
 ```
 pip install PySide6-Essentials pyinstaller
 cd work
-python -m PyInstaller --noconfirm --clean BO2SPAnims.spec
+python -m PyInstaller --noconfirm --clean BO2SP.spec
 ```
 
-Entry point: `work/porter/bo2spanims.py`. Library extraction uses [OpenAssetTools](https://github.com/Laupetin/OpenAssetTools) (`Unlinker.exe`, GPL-3.0) placed in `tools/` next to the EXE.
+Entry point: `work/porter/bo2sp.py`. Library extraction uses [OpenAssetTools](https://github.com/Laupetin/OpenAssetTools) (`Unlinker.exe`, GPL-3.0) placed in `tools/` next to the EXE.
 
 ## Credits
 

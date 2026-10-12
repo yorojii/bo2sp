@@ -1,7 +1,7 @@
 """Third-person camera helper for local Redacted multiplayer matches."""
 from pathlib import Path
 
-CAMERA_SCRIPT = '''// BO2SPAnims Third Person Camera v2
+CAMERA_SCRIPT = '''// BO2SP Third Person Camera v2
 init()
 {
     level thread tpc_connect();
@@ -67,7 +67,7 @@ tpc_keys()
 }
 '''
 
-# v1, installed as yoroji_third_person.gsc by Yoroji Tool and earlier BO2SPAnims builds; replaced on install.
+# v1, installed as yoroji_third_person.gsc by Yoroji Tool and earlier BO2SP builds; replaced on install.
 LEGACY_SCRIPT = '''// Yoroji Tool camera helper v1
 init()
 {
@@ -134,16 +134,19 @@ yoroji_camera_keys()
 }
 '''
 
+# v2 as shipped in BO2SPAnims v0.5.0 (same script, old name in its first line); replaced on install.
+PREVIOUS_SCRIPT=CAMERA_SCRIPT.replace('// BO2SP Third Person Camera v2','// BO2SPAnims Third Person Camera v2',1)
+
 def install_camera(folder):
     """Install (or update) the Third Person Camera script. A script someone edited is never overwritten."""
     root=Path(folder)
     if not (root/'Redacted.ini').is_file():raise ValueError('Choose your BO2 Redacted folder first.')
     scripts=root/'data/scripts';path=scripts/'third_person_camera.gsc';legacy=scripts/'yoroji_third_person.gsc'
     data=CAMERA_SCRIPT.encode('ascii')
-    if path.exists() and path.read_bytes()!=data:
-        raise ValueError('third_person_camera.gsc was edited outside BO2SPAnims. It has been preserved.')
+    if path.exists() and path.read_bytes() not in (data,PREVIOUS_SCRIPT.encode('ascii')):
+        raise ValueError('third_person_camera.gsc was edited outside BO2SP. It has been preserved.')
     if legacy.exists() and legacy.read_bytes()!=LEGACY_SCRIPT.encode('ascii'):
-        raise ValueError('yoroji_third_person.gsc was edited outside BO2SPAnims. Remove it yourself first, or two camera scripts would run.')
+        raise ValueError('yoroji_third_person.gsc was edited outside BO2SP. Remove it yourself first, or two camera scripts would run.')
     scripts.mkdir(parents=True,exist_ok=True)
     path.write_bytes(data)
     if legacy.exists():legacy.unlink() # The old version of this same script; two would fight over the camera.

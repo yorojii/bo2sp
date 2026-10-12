@@ -12,7 +12,7 @@ WORK=Path(__file__).resolve().parent
 sys.path.insert(0,str(WORK/'porter'))
 from library import index_libraries
 folder=sys.argv[1];started=time.monotonic()
-result=index_libraries({'mw3':folder},WORK/'catalog/mw3',WORK.parent/'outputs/BO2SPAnims/tools/Unlinker.exe',print,
+result=index_libraries({'mw3':folder},WORK/'catalog/mw3',WORK.parent/'outputs/BO2SP/tools/Unlinker.exe',print,
                        progress=lambda done,total,text:print(f'{done}/{total} {text}',flush=True) if done%10==0 else None)
 catalog,built,skipped=result
 assert built==['MW3 Actors'],built

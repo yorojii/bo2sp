@@ -3,7 +3,7 @@ import sys,json
 sys.path.insert(0,'work/porter')
 from runtime import Session
 pid=int(sys.argv[1]);mode=sys.argv[2];s=Session(pid,read_only=True)
-root=Path('outputs/BO2SPAnims');baseline=Path('work/packaged_live_baseline.json')
+root=Path('outputs/BO2SP');baseline=Path('work/packaged_live_baseline.json')
 try:
     if mode=='capture':
         mapping=json.loads((root/'profile.json').read_text())['mapping']

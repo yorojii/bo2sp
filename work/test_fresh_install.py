@@ -13,7 +13,7 @@ from pathlib import Path
 sys.path.insert(0,'work/porter')
 import core
 from test_support import FakeUI,close
-release=Path('outputs/BO2SPAnims').resolve();root=Path('work/fresh_install_test').resolve()
+release=Path('outputs/BO2SP').resolve();root=Path('work/fresh_install_test').resolve()
 phase_b_only='phase-b' in sys.argv # Reuse the folder and cache from a previous full run.
 if root.exists() and not phase_b_only:shutil.rmtree(root)
 if not phase_b_only:(root/'tools').mkdir(parents=True);shutil.copy2(release/'tools/Unlinker.exe',root/'tools/Unlinker.exe')

@@ -12,8 +12,8 @@ from PySide6.QtCore import Qt
 from PySide6 import QtWidgets
 root=isolated_root('ui_qt_test',lambda profile:(profile.pop('hotkeys',None),profile.pop('theme',None),profile.pop('favorites',None)))
 core.Core.start=lambda self:None
-import bo2spanims
-app=QtWidgets.QApplication([]);window=bo2spanims.Window();window.show();result={}
+import bo2sp
+app=QtWidgets.QApplication([]);window=bo2sp.Window();window.show();result={}
 def pump(seconds=0.3):
     end=time.monotonic()+seconds
     while time.monotonic()<end:app.processEvents();time.sleep(0.01)
@@ -45,7 +45,7 @@ try:
     window.glow_box.setChecked(False);pump(0.05);assert window.card.graphicsEffect() is None
     window.glow_box.setChecked(True);pump(0.05);assert window.card.graphicsEffect() is not None;result['glow_toggle']=True
     assert window.watermark.pixmap() is not None and not window.watermark.pixmap().isNull()
-    opened=[];bo2spanims.QtGui.QDesktopServices.openUrl=lambda url:opened.append(url.toString()) # Don't really open a browser.
+    opened=[];bo2sp.QtGui.QDesktopServices.openUrl=lambda url:opened.append(url.toString()) # Don't really open a browser.
     window.watermark.mousePressEvent(None);assert opened==['https://www.youtube.com/@Yorojiii'],opened;result['watermark_opens_channel']=opened[0]
     lib=window.libraries['CoD4'];lib.query.setText('mantle');pump(0.05);assert 0<lib.model.rowCount()<50;lib.table.selectRow(0);pump(0.05)
     assert c.replay_path==c.catalog[lib.model.rows[0]]['path'];result['library_search_and_select']=lib.model.rowCount()

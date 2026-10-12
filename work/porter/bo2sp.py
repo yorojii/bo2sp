@@ -1,4 +1,4 @@
-"""BO2SPAnims: COD4 / MW2 / MW3 / BO2 SP / BO2 ZM animations in BO2 Redacted MP — Qt front end (GPL-3.0-or-later).
+"""BO2SP: COD4 / MW2 / MW3 / BO2 SP / BO2 ZM animations in BO2 Redacted MP — Qt front end (GPL-3.0-or-later).
 
 The window is a retro-terminal theme built from one HSL accent color (Settings tab).
 All behavior lives in core.Core; this module only draws it and forwards user input.
@@ -13,7 +13,7 @@ LONG={short:game for game,short in SHORT.items()}
 from movement import LIMITS as MOVEMENT_LIMITS
 from logfile import install_crash_hooks
 
-APP_NAME='BO2SPANIMS'
+APP_NAME='BO2SP'
 CHANNEL_URL='https://www.youtube.com/@Yorojiii' # The watermark opens the creator's channel.
 ASSETS=Path(getattr(sys,'_MEIPASS',Path(__file__).resolve().parent))/'assets'
 ARROW_UP,ARROW_DOWN=((ASSETS/name).as_posix() for name in ('arrow_up.png','arrow_down.png')) # iOS spin-box arrows (stylesheet urls want forward slashes).
@@ -572,7 +572,7 @@ class Window(QtWidgets.QMainWindow):
         layout.addLayout(row(use,label('Choose a Body layer for a full-character animation.',name='muted'),self.live_label,stretch_at=2))
         copy=self.plain_button('Copy log for support',self.copy_support_log);folder=self.plain_button('Open log folder',lambda:os.startfile(str(self.core.logfile.folder)))
         copy.setToolTip('Copies your setup and the recent log, with your Windows username hidden, to paste when asking for help.')
-        layout.addLayout(row(label('LOG',name='section'),label('Also saved to logs/bo2spanims.log (the previous session is bo2spanims.old.log).',name='muted'),copy,folder,stretch_at=2))
+        layout.addLayout(row(label('LOG',name='section'),label('Also saved to logs/bo2sp.log (the previous session is bo2sp.old.log).',name='muted'),copy,folder,stretch_at=2))
         self.log=QtWidgets.QPlainTextEdit();self.log.setReadOnly(True);layout.addWidget(self.log,1);return page
     def copy_support_log(self):
         QtGui.QGuiApplication.clipboard().setText(self.core.support_text());self.core.set_status('Support log copied. Paste it wherever you’re asking for help.')
@@ -581,7 +581,7 @@ class Window(QtWidgets.QMainWindow):
         layout=QtWidgets.QVBoxLayout(page);layout.setContentsMargins(0,6,12,0);layout.setSpacing(8)
         def text(words,name=None):
             widget=label(words,name=name);widget.setWordWrap(True);layout.addWidget(widget);return widget
-        layout.addWidget(label('BO2SPAnims',name='title'))
+        layout.addWidget(label('BO2SP',name='title'))
         text('Animations from other Call of Duty games in Black Ops II Redacted multiplayer, applied live while you play.',name='muted')
         layout.addWidget(label('WHAT IT DOES',name='section'))
         text('Pick a clip from COD4, MW2, MW3 (single-player actors), BO2 SP or BO2 ZM, choose the BO2 body animation it replaces, '
@@ -651,7 +651,7 @@ class Window(QtWidgets.QMainWindow):
             box=QtWidgets.QCheckBox(game);box.setFocusPolicy(Qt.NoFocus);box.toggled.connect(lambda on,game=game:self.core.pick_build(game,on));self.build_boxes[game]=box
         layout.addLayout(row(self.reindex_button,*self.build_boxes.values(),stretch_at=len(GAMES)+1,spacing=14))
         build_help=label('Ticked games are extracted when you click Build libraries. Games already in your library start unticked, so they’re skipped; tick one to rebuild it. Games whose folder wasn’t found can’t be ticked. Click again to cancel; building again resumes.',name='muted');build_help.setWordWrap(True);layout.addWidget(build_help)
-        layout.addWidget(label('Closing BO2SPAnims restores BO2’s original animations.',name='muted'));layout.addStretch(1);return scroll
+        layout.addWidget(label('Closing BO2SP restores BO2’s original animations.',name='muted'));layout.addStretch(1);return scroll
 
     # Actions needing widget state
     def use_highlighted(self):
@@ -666,7 +666,7 @@ class Window(QtWidgets.QMainWindow):
         if code:QtWidgets.QApplication.clipboard().setText(code)
     def paste_code(self):
         text=QtWidgets.QApplication.clipboard().text()
-        if not text.strip():self.core.set_status('Copy a BO2SPAnims share code first, then click Paste share code.');return
+        if not text.strip():self.core.set_status('Copy a BO2SP share code first, then click Paste share code.');return
         result=self.core.import_share_code(text)
         if result and result[0]=='set':self.set_box.setCurrentText(result[1])
     def save_folders(self):self.core.set_folders(self.folder_edits['cod4'].text(),self.folder_edits['mw2'].text(),self.folder_edits['bo2'].text(),self.folder_edits['mw3'].text());self.core.set_status('Game folders saved.')
@@ -756,7 +756,7 @@ class Window(QtWidgets.QMainWindow):
         elif glass:
             self.colors=glass_palette(theme);self.setStyleSheet(glass_stylesheet(self.colors));self.watermark.tint(QtGui.QColor(255,255,255))
         else:self.colors=palette(theme);self.setStyleSheet(stylesheet(self.colors));self.watermark.tint(self.colors['acc'])
-        self.title_label.setText('BO2SPAnims' if glass else 'bo2spanims.apk' if android else APP_NAME)
+        self.title_label.setText('BO2SP' if glass else 'bo2sp.apk' if android else APP_NAME)
         self.lights.update_lights();self.subtitle.setVisible(not android) # The bigger pixel font needs the room.
         for key,button in self.style_buttons.items():button.blockSignals(True);button.setChecked(theme.get('style','terminal')==key);button.blockSignals(False)
         for widget in (self.glass_label,self.glass_slider,self.glass_value):widget.setVisible(glass)
@@ -846,10 +846,10 @@ def main():
     duplicate=ctypes.get_last_error()==183
     try:
         if sys.platform=='win32' and not getattr(sys,'frozen',False): # From source, group under our icon instead of python.exe's.
-            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('Yoroji.BO2SPAnims')
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('Yoroji.BO2SP')
         install_crash_hooks()
         app=QtWidgets.QApplication(sys.argv);app.setApplicationName(APP_NAME);app.setWindowIcon(QtGui.QIcon(str(ASSETS/'app.ico')))
-        if duplicate:QtWidgets.QMessageBox.information(None,'Already open','BO2SPAnims is already running. Use the existing window.');return
+        if duplicate:QtWidgets.QMessageBox.information(None,'Already open','BO2SP is already running. Use the existing window.');return
         window=Window();window.show();app.exec()
     finally:k.CloseHandle(handle)
 

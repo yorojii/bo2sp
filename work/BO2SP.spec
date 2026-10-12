@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['porter/bo2spanims.py'],
+    ['porter/bo2sp.py'],
     pathex=[],
     binaries=[],
     datas=[('porter/assets','assets')],
@@ -21,7 +21,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='BO2SPAnims',
+    name='BO2SP',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -41,5 +41,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='BO2SPAnims',
+    name='BO2SP',
 )

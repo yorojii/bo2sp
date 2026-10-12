@@ -18,7 +18,7 @@ from library import BO2_LIBRARIES
 
 kind=sys.argv[1] if len(sys.argv)>1 else 'sp'
 game,zone_filter,common=BO2_LIBRARIES[kind]
-bo2=Path(sys.argv[2]) if len(sys.argv)>2 else Path(json.loads((WORK.parent/'outputs/BO2SPAnims/profile.json').read_text())['bo2'])
+bo2=Path(sys.argv[2]) if len(sys.argv)>2 else Path(json.loads((WORK.parent/'outputs/BO2SP/profile.json').read_text())['bo2'])
 files=[ff for ff in sorted((bo2/'zone/all').glob('*.ff')) if zone_filter(ff)]
 files.sort(key=lambda ff:ff.stem!=common) # Shared clips are credited to the common zone first.
 library=f'bo2{kind}';catalog=[];seen=set();skipped=[]

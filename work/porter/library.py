@@ -1,4 +1,4 @@
-"""Local CoD4 / MW2 and MW3 actor / BO2 single-player and Zombies library indexing for BO2SPAnims.
+"""Local CoD4 / MW2 and MW3 actor / BO2 single-player and Zombies library indexing for BO2SP.
 
 index_libraries() builds the clip catalog from whichever game folders exist. A game whose
 folder is missing or unset is skipped (and reported) rather than failing the whole build.
@@ -64,7 +64,7 @@ def index_libraries(folders,root,unlinker,log,stopped=lambda:False,progress=lamb
     """folders: {'cod4','mw2','mw3','bo2'} paths; games: which of GAMES to build (all when None).
     Returns (catalog of the built games, built games, skipped games whose folder is missing), or None if stopped."""
     root=Path(root);unlinker=Path(unlinker)
-    if not unlinker.exists():raise FileNotFoundError('tools/Unlinker.exe is missing. Keep the whole BO2SPAnims folder together.')
+    if not unlinker.exists():raise FileNotFoundError('tools/Unlinker.exe is missing. Keep the whole BO2SP folder together.')
     plan=[];skipped=[]
     for game in (GAMES if games is None else [g for g in GAMES if g in games]):
         files=game_zones(game,folders.get(FOLDER_KEY[game]))

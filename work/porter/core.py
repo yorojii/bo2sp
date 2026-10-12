@@ -1,4 +1,4 @@
-"""BO2SPAnims application core: state, profile, importer, observer and hotkeys (GPL-3.0-or-later).
+"""BO2SP application core: state, profile, importer, observer and hotkeys (GPL-3.0-or-later).
 
 No GUI toolkit here. A front end passes a `ui` object providing:
   post(fn)                      run fn on the UI thread (callable from any thread)
@@ -180,7 +180,7 @@ def encode_share(data):
 def decode_share(text):
     """The preset dict from a share code (surrounding text and line breaks are ignored), or ValueError."""
     match=re.search(re.escape(SHARE_PREFIX)+r'([A-Za-z0-9_\-\s]+)',text or '')
-    if not match:raise ValueError("That isn't a BO2SPAnims share code.")
+    if not match:raise ValueError("That isn't a BO2SP share code.")
     body=re.sub(r'\s','',match.group(1))
     try:data=json.loads(zlib.decompress(base64.urlsafe_b64decode(body+'='*(-len(body)%4))))
     except Exception:raise ValueError('That share code is incomplete or damaged. Copy the whole code and try again.')

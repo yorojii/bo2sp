@@ -14,7 +14,7 @@ import json,shutil,sys
 from pathlib import Path
 WORK=Path(__file__).resolve().parent
 kind=sys.argv[1] if len(sys.argv)>1 else 'sp'
-release=WORK.parent/'outputs/BO2SPAnims'
+release=WORK.parent/'outputs/BO2SP'
 catalog_path=release/'library/catalog.json'
 catalog=json.loads(catalog_path.read_text())
 source=json.loads((WORK/('mw3_catalog.json' if kind=='mw3' else f'bo2{kind}_catalog.json')).read_text());game=source[0]['game']

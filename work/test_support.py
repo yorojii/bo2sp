@@ -12,7 +12,7 @@ import core,movement
 # Tests may see the user's running BO2 through the observer; never let the movement sliders write to it.
 movement.Movement.update=lambda self,pid,percent:None
 
-FINAL=Path('outputs/BO2SPAnims').resolve()
+FINAL=Path('outputs/BO2SP').resolve()
 
 def isolated_root(name,edit=None):
     root=Path('work',name).resolve();(root/'state').mkdir(parents=True,exist_ok=True);(root/'library').mkdir(exist_ok=True)

@@ -1,8 +1,8 @@
 """Session log on disk, for helping users with problems (GPL-3.0-or-later).
 
 Everything the Debug log shows, status changes, and unexpected errors (with tracebacks) are written
-with timestamps to logs/bo2spanims.log next to the tool. Starting a new session keeps the previous
-one as bo2spanims.old.log, so the run that went wrong survives a restart. A session stops writing at
+with timestamps to logs/bo2sp.log next to the tool. Starting a new session keeps the previous
+one as bo2sp.old.log, so the run that went wrong survives a restart. A session stops writing at
 MAX_BYTES so the file can't grow without bound. support_text() is what "Copy log for support" puts
 on the clipboard: a header describing the setup plus the recent lines, with the Windows user folder
 replaced by %USERPROFILE% so usernames aren't shared.
@@ -16,7 +16,7 @@ SUPPORT_LINES=400
 
 class LogFile:
     def __init__(self,root):
-        self.folder=Path(root)/'logs';self.path=self.folder/'bo2spanims.log';self.old=self.folder/'bo2spanims.old.log'
+        self.folder=Path(root)/'logs';self.path=self.folder/'bo2sp.log';self.old=self.folder/'bo2sp.old.log'
         self.lock=threading.Lock();self.file=None;self.written=0;self.full=False;self.header_lines=[]
         try:
             self.folder.mkdir(exist_ok=True)
@@ -36,14 +36,14 @@ class LogFile:
     def header(self,info):
         """Describe the setup once per session (tool version, Windows, game folder, library)."""
         self.header_lines=[f'{key}: {value}' for key,value in info.items()]
-        self.write('\n'.join(['BO2SPAnims session started']+self.header_lines))
+        self.write('\n'.join(['BO2SP session started']+self.header_lines))
     def exception(self,kind,error,trace,where=''):
         self.write(''.join(traceback.format_exception(kind,error,trace)).rstrip(),'error'+(f' in {where}' if where else ''))
     def support_text(self):
         """Header plus the most recent lines of this session's log, ready to paste; usernames hidden."""
         try:recent=self.path.read_text(encoding='utf-8',errors='replace').splitlines()[-SUPPORT_LINES:]
         except OSError:recent=['(no log file)']
-        return redact('\n'.join(['BO2SPAnims support log','']+self.header_lines+['','Recent log:']+recent))
+        return redact('\n'.join(['BO2SP support log','']+self.header_lines+['','Recent log:']+recent))
     def close(self):
         with self.lock:
             if self.file:self.file.close();self.file=None

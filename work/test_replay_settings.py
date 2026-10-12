@@ -5,7 +5,7 @@ Writes work/replay_settings_validation.json.
 from pathlib import Path
 import json
 from test_support import isolated_root,new_core,close
-def seed(profile):profile['mapping'].setdefault('pb_stand_alert',str(Path('outputs/BO2SPAnims/library/clips/00000.xanim').resolve())) # Target must be mapped to stay selected.
+def seed(profile):profile['mapping'].setdefault('pb_stand_alert',str(Path('outputs/BO2SP/library/clips/00000.xanim').resolve())) # Target must be mapped to stay selected.
 root=isolated_root('replay_settings_test',seed)
 app,ui=new_core()
 try:
