@@ -12,6 +12,7 @@ from core import Core,GAMES,SHORT,THEME_PRESETS,DEFAULT_THEME,k
 LONG={short:game for game,short in SHORT.items()}
 from movement import LIMITS as MOVEMENT_LIMITS
 from logfile import install_crash_hooks
+from version import VERSION
 
 APP_NAME='BO2SP'
 CHANNEL_URL='https://www.youtube.com/@Yorojiii' # The watermark opens the creator's channel.
@@ -633,7 +634,7 @@ class Window(QtWidgets.QMainWindow):
         layout=QtWidgets.QVBoxLayout(page);layout.setContentsMargins(0,6,12,0);layout.setSpacing(8)
         def text(words,name=None):
             widget=label(words,name=name);widget.setWordWrap(True);layout.addWidget(widget);return widget
-        layout.addWidget(label('BO2SP',name='title'))
+        layout.addWidget(label('BO2SP',name='title'));layout.addWidget(label(f'Version {VERSION}',name='muted'))
         text('Animations from other Call of Duty games in Black Ops II Redacted multiplayer, applied live while you play.',name='muted')
         layout.addWidget(label('WHAT IT DOES',name='section'))
         text('Pick a clip from COD4, MW2, MW3 (single-player actors), BO2 SP or BO2 ZM, choose the BO2 body animation it replaces, '

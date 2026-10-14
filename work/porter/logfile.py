@@ -8,6 +8,7 @@ on the clipboard: a header describing the setup plus the recent lines, with the 
 replaced by %USERPROFILE% so usernames aren't shared.
 """
 import os,platform,re,sys,threading,time,traceback
+from version import VERSION
 from pathlib import Path
 
 MAX_BYTES=4*1024*1024
@@ -57,9 +58,9 @@ def setup_info(root,bo2,clips,mapped):
     exe=Path(sys.executable)
     if getattr(sys,'frozen',False):
         import hashlib
-        try:version='EXE '+hashlib.sha256(exe.read_bytes()).hexdigest()[:8]
-        except OSError:version='EXE (unreadable)'
-    else:version='source'
+        try:version=f'v{VERSION} (EXE '+hashlib.sha256(exe.read_bytes()).hexdigest()[:8]+')'
+        except OSError:version=f'v{VERSION} (EXE unreadable)'
+    else:version=f'v{VERSION} (source)'
     folder=Path(bo2) if bo2 else None
     game=('t6mpv43.exe' if (folder/'t6mpv43.exe').is_file() else 't6mp.exe' if (folder/'t6mp.exe').is_file() else 'no BO2 exe') if folder else 'not set'
     build=sys.getwindowsversion().build if hasattr(sys,'getwindowsversion') else 0
