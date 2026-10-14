@@ -15,6 +15,7 @@ from logfile import install_crash_hooks
 
 APP_NAME='BO2SP'
 CHANNEL_URL='https://www.youtube.com/@Yorojiii' # The watermark opens the creator's channel.
+BROKN_URL='https://www.youtube.com/@brokn.'
 ASSETS=Path(getattr(sys,'_MEIPASS',Path(__file__).resolve().parent))/'assets'
 ARROW_UP,ARROW_DOWN=((ASSETS/name).as_posix() for name in ('arrow_up.png','arrow_down.png')) # iOS spin-box arrows (stylesheet urls want forward slashes).
 FONT='Consolas'
@@ -646,7 +647,8 @@ class Window(QtWidgets.QMainWindow):
         layout.addWidget(label('CREDITS',name='section'))
         text('Created by Yoroji & brokn.')
         text('OpenAssetTools (asset extraction), Greyhound and T6SDK (format and engine references).',name='muted')
-        layout.addLayout(row(self.plain_button('Yoroji on YouTube',lambda:QtGui.QDesktopServices.openUrl(QtCore.QUrl(CHANNEL_URL))),stretch_at=1))
+        brokn=self.plain_button('brokn on YouTube',lambda:QtGui.QDesktopServices.openUrl(QtCore.QUrl(BROKN_URL)))
+        layout.addLayout(row(self.plain_button('Yoroji on YouTube',lambda:QtGui.QDesktopServices.openUrl(QtCore.QUrl(CHANNEL_URL))),brokn,stretch_at=2))
         layout.addWidget(label('LICENSE',name='section'))
         text('Free software under the GNU GPL-3.0. Animation data comes from games you own and stays on your machine.',name='muted')
         layout.addStretch(1);return scroll
