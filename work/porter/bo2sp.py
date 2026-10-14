@@ -644,7 +644,7 @@ class Window(QtWidgets.QMainWindow):
              'Nothing on disk changes: Stop & restore, closing the tool, or restarting BO2 brings the original animations back. '
              'A replacement applies to every character using that slot, and shows in Theater while the tool is open.')
         layout.addWidget(label('CREDITS',name='section'))
-        text('Made by Yoroji.')
+        text('Created by Yoroji & brokn.')
         text('OpenAssetTools (asset extraction), Greyhound and T6SDK (format and engine references).',name='muted')
         layout.addLayout(row(self.plain_button('Yoroji on YouTube',lambda:QtGui.QDesktopServices.openUrl(QtCore.QUrl(CHANNEL_URL))),stretch_at=1))
         layout.addWidget(label('LICENSE',name='section'))

@@ -95,4 +95,4 @@ References: OpenAssetTools, Greyhound (Scobalula) and T6SDK (Amyst82).
 Animation data comes from games you own and stays on your PC; none is
 included with BO2SP.
 
-Made by Yoroji - https://www.youtube.com/@Yorojiii
+Created by Yoroji & brokn - https://www.youtube.com/@Yorojiii

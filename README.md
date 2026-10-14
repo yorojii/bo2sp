@@ -46,7 +46,7 @@ Entry point: `work/porter/bo2sp.py`. Library extraction uses [OpenAssetTools](ht
 
 ## Credits
 
-- Made by [Yoroji](https://www.youtube.com/@Yorojiii)
+- Created by [Yoroji](https://www.youtube.com/@Yorojiii) & brokn
 - [OpenAssetTools](https://github.com/Laupetin/OpenAssetTools), [Greyhound](https://github.com/Scobalula/Greyhound), and [T6SDK](https://github.com/Amyst82/T6SDK) for format and engine references
 
 ## License
