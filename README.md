@@ -2,11 +2,11 @@
 
 Swap animations from other Call of Duty games into **Black Ops II Redacted multiplayer**, live, while the game is running.
 
-Pick a clip from COD4, MW2, MW3 (single-player actors), BO2 SP, or BO2 ZM, choose which BO2 body animation to replace, and see it on your character. This is useful for staging scenes in custom matches and filming them in Theater (works alongside t6mvm).
+Pick a clip from COD4, MW2, MW3 , BO2 SP, or BO2 ZM, choose which BO2 body animation to replace, and see it on your character. This is useful for staging scenes in custom matches and filming them in Theater (works alongside t6mvm).
 
 ## Features
 
-- **Over 19,000 body animations**: COD4 (MP + SP), MW2, MW3 (campaign + Spec Ops actors), BO2 SP (campaign/Strike Force), and BO2 ZM (Zombies), all searchable.
+- **Over 19,000 body animations**: COD4 (MP + SP), MW2, MW3 (campaign + Spec Ops), BO2 SP (campaign/Strike Force), and BO2 ZM (Zombies), all searchable.
 - **Live target**: follows the animation your character is playing right now, so you know which slot you're replacing.
 - **Apply anim hotkey** (default F6, rebindable): apply the selected clip to your current slot and restart it, without tabbing out.
 - **Freelook** (hold Alt, rebindable): orbit the third-person camera around your character without turning them.
