@@ -20,8 +20,14 @@ def pump(seconds=0.3):
 try:
     pump()
     tabs=[window.tabs.tabText(i).split(' ')[0] if not window.tabs.tabText(i).startswith('★') else 'Favorites' for i in range(window.tabs.count())]
-    assert tabs==['Favorites','COD4','MW2','MW3','BO2','BO2','Replacements','Debug','Settings','About'],tabs;result['tabs']=[window.tabs.tabText(i) for i in range(window.tabs.count())]
+    assert tabs==['Setup','Favorites','COD4','MW2','MW3','BO2','BO2','Replacements','Debug','Settings','About'],tabs;result['tabs']=[window.tabs.tabText(i) for i in range(window.tabs.count())]
     c=window.core
+    setup=window.tabs.indexOf(window.setup_page);c.set_setup_done(False);assert window.tabs.isTabVisible(setup)
+    window.finish_setup();assert c.setup_done and not window.tabs.isTabVisible(setup)
+    full=c.catalog;c.catalog=[];window.changed('catalog');assert window.tabs.isTabVisible(setup) # No animations yet: Setup stays.
+    c.catalog=full;window.changed('catalog');assert not window.tabs.isTabVisible(setup)
+    window.run_setup_again();assert window.tabs.isTabVisible(setup) and window.tabs.currentWidget() is window.setup_page
+    window.finish_setup();result['setup_tab_rules']=True
     mw3=window.tabs.indexOf(window.libraries['MW3 Actors']);assert window.tabs.isTabVisible(mw3)
     full=c.catalog;c.catalog=[x for x in full if x['game']!='MW3 Actors'];window.changed('catalog');assert not window.tabs.isTabVisible(mw3)
     c.catalog=full;window.changed('catalog');assert window.tabs.isTabVisible(mw3);result['empty_game_tab_hidden']=True

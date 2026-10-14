@@ -456,7 +456,8 @@ class Window(QtWidgets.QMainWindow):
         self.resize(min(1240,int(screen.width()*0.92)),min(860,int(screen.height()*0.92)));self.move(screen.center()-self.rect().center())
         self.save_timer=QtCore.QTimer(self);self.save_timer.setSingleShot(True);self.save_timer.timeout.connect(self.core.save)
         self.timer=QtCore.QTimer(self);self.timer.timeout.connect(self.core.tick);self.timer.start(20)
-        self.apply_theme();self.changed('catalog','mapping','sets','hotkeys','movement','target','targets','snapshot','status','live','busy','replay_note','folders')
+        self.apply_theme();self.changed('catalog','mapping','sets','hotkeys','movement','setup','target','targets','snapshot','status','live','busy','replay_note','folders')
+        self.tabs.setCurrentWidget(self.setup_page if self.setup_needed() else self.libraries['Favorites']) # Open on Setup until it's done.
     # ui interface used by core.Core
     def post(self,fn):self.poster.run.emit(fn)
     def append_log(self,text):self.log.appendPlainText(text)
@@ -473,8 +474,11 @@ class Window(QtWidgets.QMainWindow):
         present={x['game'] for x in self.core.catalog}
         for game in GAMES:self.tabs.setTabVisible(self.tabs.indexOf(self.libraries[game]),game in present)
     def render_build(self):
+        if hasattr(self,'setup_build_button'):self.setup_build_button.setText('Cancel build' if self.core.building else 'Build libraries')
         for game,found,count,ticked in self.core.build_choices():
-            box=self.build_boxes[game];box.blockSignals(True);box.setChecked(ticked);box.setEnabled(found and not self.core.building);box.blockSignals(False)
+          for boxes in (self.build_boxes,getattr(self,'setup_build_boxes',{})):
+            if game not in boxes:continue
+            box=boxes[game];box.blockSignals(True);box.setChecked(ticked);box.setEnabled(found and not self.core.building);box.blockSignals(False)
             name=SHORT[game];box.setText(f"{name} ({count:,})" if count else name if found else f'{name} (not found)')
             box.setToolTip('Already in your library: tick to rebuild it.' if count and found else 'Folder not found: set it under Game folders.' if not found else 'Not in your library yet.')
     def render_movement(self):
@@ -535,13 +539,60 @@ class Window(QtWidgets.QMainWindow):
         panel.addWidget(self.plain_button('Reset',self.core.reset_movement));panel.addStretch(1)
         self.movement_panel.hide();card.addWidget(self.movement_panel);layout.addWidget(self.card)
         self.tabs=QtWidgets.QTabWidget();self.tabs.setDocumentMode(True);layout.addWidget(self.tabs,1)
-        self.libraries={}
+        self.libraries={};self.setup_page=self.build_setup();self.tabs.addTab(self.setup_page,'Setup')
         for game in ('Favorites',*GAMES):
             tab=LibraryTab(self,game);self.libraries[game]=tab;self.tabs.addTab(tab,'★ Favorites' if game=='Favorites' else SHORT[game])
         self.tabs.addTab(self.build_replacements(),'Replacements');self.tabs.addTab(self.build_debug(),'Debug');self.tabs.addTab(self.build_settings(),'Settings');self.tabs.addTab(self.build_about(),'About')
         layout.addWidget(rule())
         self.status=label();self.status.setWordWrap(True);self.hints=label('',name='muted');self.watermark=Watermark(self)
         footer=row(self.status,self.hints,self.watermark,spacing=16);footer.setStretch(0,1);layout.addLayout(footer)
+    def build_setup(self):
+        """First-launch walkthrough. Finishing hides it; Settings › Run setup again brings it back."""
+        scroll=QtWidgets.QScrollArea();scroll.setWidgetResizable(True);page=QtWidgets.QWidget();scroll.setWidget(page)
+        layout=QtWidgets.QVBoxLayout(page);layout.setContentsMargins(0,6,12,0);layout.setSpacing(8)
+        def text(words,name='muted'):
+            widget=label(words,name=name);widget.setWordWrap(True);layout.addWidget(widget);return widget
+        layout.addWidget(label('Welcome to BO2SP',name='title'))
+        text('Five quick steps, then you’re ready. Everything here can be changed later in Settings.')
+        layout.addWidget(label('1  GAME FOLDERS',name='section'))
+        text('Found automatically where possible. BO2 Redacted is required; the other games only add their animation libraries.')
+        self.setup_folders={}
+        for key,name in (('bo2','BO2 Redacted'),('cod4','COD4'),('mw2','MW2'),('mw3','MW3')):
+            path=label('',name='muted');browse=self.plain_button('Browse',lambda checked=False,key=key:self.setup_browse(key));self.setup_folders[key]=path
+            name_label=label(name);name_label.setMinimumWidth(110);layout.addLayout(row(name_label,path,browse,stretch_at=2))
+        layout.addLayout(row(self.plain_button('Detect again',self.detect_folders),stretch_at=1))
+        layout.addWidget(label('2  BUILD LIBRARIES',name='section'))
+        text('Extracts the character animations from the ticked games (several minutes; you can keep using the tool). Games already built start unticked.')
+        self.setup_build_button=self.plain_button('Build libraries',self.core.reindex);self.setup_build_boxes={}
+        for game in GAMES:
+            box=QtWidgets.QCheckBox(game);box.setFocusPolicy(Qt.NoFocus);box.toggled.connect(lambda on,game=game:self.core.pick_build(game,on));self.setup_build_boxes[game]=box
+        layout.addLayout(row(self.setup_build_button,*self.setup_build_boxes.values(),stretch_at=len(GAMES)+1,spacing=14))
+        layout.addWidget(label('3  THIRD PERSON CAMERA',name='section'))
+        text('Lets you see your own character: matches you host start in third person, and holding F + pressing 1 switches views.')
+        layout.addLayout(row(self.plain_button('Install Third Person Camera',self.core.enable_camera),stretch_at=1))
+        layout.addWidget(label('4  LOOK',name='section'))
+        self.setup_style_buttons={key:self.plain_button(name,lambda checked=False,key=key:self.core.set_theme(style=key),checkable=True) for key,name in (('terminal','Terminal'),('glass','iOS'),('android','Android'))}
+        layout.addLayout(row(*self.setup_style_buttons.values(),label('The accent colour and more are in Settings › Appearance.',name='muted'),stretch_at=4))
+        layout.addWidget(label('5  KEYS',name='section'))
+        self.setup_keys=text('')
+        layout.addWidget(rule())
+        finish=self.plain_button('Finish setup',self.finish_setup);layout.addLayout(row(finish,label('Start BO2 with “Launch BO2 & apply” (top right), or open the game first and BO2SP attaches.',name='muted'),stretch_at=2))
+        layout.addStretch(1);return scroll
+    def setup_browse(self,key):
+        path=QtWidgets.QFileDialog.getExistingDirectory(self,'Choose folder',getattr(self.core,key) or '')
+        if path:self.core.set_folder(key,str(Path(path)))
+    def setup_needed(self):return not self.core.setup_done or not self.core.catalog # Until finished, and until any game has clips.
+    def finish_setup(self):
+        self.core.set_setup_done(True)
+        if not self.core.catalog:self.core.set_status('Setup stays open until at least one game’s animations are built (step 2).');return
+        self.tabs.setCurrentWidget(self.libraries['Favorites'])
+    def run_setup_again(self):self.core.set_setup_done(False);self.tabs.setCurrentWidget(self.setup_page)
+    def render_setup(self):
+        core=self.core;self.tabs.setTabVisible(self.tabs.indexOf(self.setup_page),self.setup_needed())
+        for key,path in self.setup_folders.items():
+            value=getattr(core,key);path.setText(value or 'Not found yet: click Browse')
+        self.setup_keys.setText(f"Apply anim: {core.apply_name} (applies the selected clip and restarts it).  Freelook: hold {core.freelook_name if core.freelook_vk else 'no key'} to orbit the camera.  "
+                                'Right-click a button to change its key or give any button a hotkey.')
     def build_replacements(self):
         page=QtWidgets.QWidget();layout=QtWidgets.QVBoxLayout(page);layout.setContentsMargins(0,6,0,0)
         self.mapping_table=QtWidgets.QTableWidget(0,2);self.mapping_table.setHorizontalHeaderLabels(['BO2 animation slot','Source clip'])
@@ -651,6 +702,7 @@ class Window(QtWidgets.QMainWindow):
             box=QtWidgets.QCheckBox(game);box.setFocusPolicy(Qt.NoFocus);box.toggled.connect(lambda on,game=game:self.core.pick_build(game,on));self.build_boxes[game]=box
         layout.addLayout(row(self.reindex_button,*self.build_boxes.values(),stretch_at=len(GAMES)+1,spacing=14))
         build_help=label('Ticked games are extracted when you click Build libraries. Games already in your library start unticked, so they’re skipped; tick one to rebuild it. Games whose folder wasn’t found can’t be ticked. Click again to cancel; building again resumes.',name='muted');build_help.setWordWrap(True);layout.addWidget(build_help)
+        layout.addLayout(row(self.plain_button('Run setup again',self.run_setup_again),label('Opens the Setup tab with the first-launch steps.',name='muted'),stretch_at=2))
         layout.addWidget(label('Closing BO2SP restores BO2’s original animations.',name='muted'));layout.addStretch(1);return scroll
 
     # Actions needing widget state
@@ -682,7 +734,7 @@ class Window(QtWidgets.QMainWindow):
                 self.import_chip.setText(f'imports ● {len(session.imported)} live' if running and session else 'imports ● starting' if running else 'imports ○ off');self.live_label.setText(core.live)
             elif field=='catalog':
                 for tab in self.libraries.values():tab.reload_zones()
-                self.render_build();self.show_game_tabs()
+                self.render_build();self.show_game_tabs();self.render_setup()
             elif field=='favorites':
                 for game,tab in self.libraries.items():
                     if game=='Favorites':tab.render()
@@ -690,7 +742,7 @@ class Window(QtWidgets.QMainWindow):
             elif field=='mapping':self.render_mapping();self.render_card()
             elif field=='sets':
                 current=self.set_box.currentText();self.set_box.clear();self.set_box.addItems(sorted(core.saved_sets));self.set_box.setCurrentText(current if current in core.saved_sets else '')
-            elif field=='hotkeys':self.render_hotkeys()
+            elif field=='hotkeys':self.render_hotkeys();self.render_setup()
             elif field=='movement':self.render_movement()
             elif field in ('target','targets'):self.render_slots();self.render_card()
             elif field=='replay_note':self.replay_note.setText(core.replay_note)
@@ -699,9 +751,10 @@ class Window(QtWidgets.QMainWindow):
                 idle=core.idle();self.launch.setEnabled(idle);self.basics.setEnabled(idle);self.reindex_button.setEnabled(idle or core.building)
                 self.reindex_button.setProperty('base','Cancel build' if core.building else 'Build libraries');self.render_hotkeys();self.render_build();self.changed('live')
             elif field=='build':self.render_build()
+            elif field=='setup':self.render_setup()
             elif field=='folders':
                 for key,edit in self.folder_edits.items():edit.setText(getattr(core,key))
-                self.render_build()
+                self.render_build();self.render_setup()
             elif field=='theme':self.apply_theme()
     def render_slots(self):
         for box in self.slots:
@@ -758,7 +811,7 @@ class Window(QtWidgets.QMainWindow):
         else:self.colors=palette(theme);self.setStyleSheet(stylesheet(self.colors));self.watermark.tint(self.colors['acc'])
         self.title_label.setText('BO2SP' if glass else 'bo2sp.apk' if android else APP_NAME)
         self.lights.update_lights();self.subtitle.setVisible(not android) # The bigger pixel font needs the room.
-        for key,button in self.style_buttons.items():button.blockSignals(True);button.setChecked(theme.get('style','terminal')==key);button.blockSignals(False)
+        for key,button in (*self.style_buttons.items(),*self.setup_style_buttons.items()):button.blockSignals(True);button.setChecked(theme.get('style','terminal')==key);button.blockSignals(False)
         for widget in (self.glass_label,self.glass_slider,self.glass_value):widget.setVisible(glass)
         self.glass_hint.setVisible(glass and self.self_blur)
         tint=max(0,min(60,int(self.core.theme.get('glass',10))))
@@ -839,6 +892,27 @@ class Window(QtWidgets.QMainWindow):
         if self.core.finished():event.accept()
         else:event.ignore();QtCore.QTimer.singleShot(100,self.close)
 
+class Splash(QtWidgets.QWidget):
+    """Loading screen: the logo on a dark rounded card in the middle of the screen while the window builds."""
+    def __init__(self):
+        super().__init__(None,Qt.SplashScreen|Qt.FramelessWindowHint|Qt.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WA_TranslucentBackground);self.resize(300,330)
+        self.logo=QtGui.QPixmap(str(ASSETS/'app_icon.png'))
+        screen=QtGui.QGuiApplication.screenAt(QtGui.QCursor.pos()) or QtGui.QGuiApplication.primaryScreen()
+        self.move(screen.availableGeometry().center()-self.rect().center())
+    def paintEvent(self,event):
+        painter=QtGui.QPainter(self);painter.setRenderHints(QtGui.QPainter.Antialiasing|QtGui.QPainter.SmoothPixmapTransform)
+        area=QtCore.QRectF(self.rect()).adjusted(1,1,-1,-1)
+        painter.setPen(QtGui.QPen(QtGui.QColor(255,255,255,40),1));painter.setBrush(QtGui.QColor(14,16,22,240));painter.drawRoundedRect(area,28,28)
+        size=200;painter.drawPixmap(QtCore.QRect((self.width()-size)//2,30,size,size),self.logo)
+        painter.setPen(QtGui.QColor(240,236,228));font=QtGui.QFont('Segoe UI',17,QtGui.QFont.DemiBold);font.setLetterSpacing(QtGui.QFont.AbsoluteSpacing,3);painter.setFont(font)
+        painter.drawText(QtCore.QRect(0,240,self.width(),36),Qt.AlignCenter,'BO2SP')
+        painter.setPen(QtGui.QColor(240,236,228,140));painter.setFont(QtGui.QFont('Segoe UI',9))
+        painter.drawText(QtCore.QRect(0,276,self.width(),24),Qt.AlignCenter,'Loading…')
+    def fade_out(self):
+        self.fade=QtCore.QPropertyAnimation(self,b'windowOpacity',self);self.fade.setDuration(250);self.fade.setStartValue(1.0);self.fade.setEndValue(0.0)
+        self.fade.finished.connect(self.close);self.fade.start()
+
 def main():
     k.CreateMutexW.argtypes=[ctypes.c_void_p,wintypes.BOOL,wintypes.LPCWSTR];k.CreateMutexW.restype=wintypes.HANDLE
     handle=k.CreateMutexW(None,False,r'Local\CoD4_BO2_Redacted_Animation_Importer')
@@ -850,7 +924,10 @@ def main():
         install_crash_hooks()
         app=QtWidgets.QApplication(sys.argv);app.setApplicationName(APP_NAME);app.setWindowIcon(QtGui.QIcon(str(ASSETS/'app.ico')))
         if duplicate:QtWidgets.QMessageBox.information(None,'Already open','BO2SP is already running. Use the existing window.');return
-        window=Window();window.show();app.exec()
+        splash=Splash();splash.show();app.processEvents() # Painted before the window's slow first build.
+        shown=time.monotonic();window=Window()
+        while time.monotonic()-shown<0.8:app.processEvents();time.sleep(0.01) # Long enough to see, not to wait on.
+        window.show();window.raise_();splash.fade_out();app.exec()
     finally:k.CloseHandle(handle)
 
 if __name__=='__main__':main()

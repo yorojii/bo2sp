@@ -215,6 +215,7 @@ class Core:
         look=profile.get('freelook',{});self.freelook_vk=int(look.get('vk',0x12) or 0) # Default: either Alt key.
         self.freelook_name=(look.get('key') if 'vk' in look else key_name(self.freelook_vk)) if self.freelook_vk else 'None'
         self.freelook_enabled=bool(look.get('enabled',True));self.freelook_speed=self.clamp_speed(look.get('speed',0.15))
+        self.setup_done=bool(profile.get('setup_done',False)) # First launch shows the Setup tab until it's finished.
         moves=profile.get('movement',{});self.movement={key:clamp_percent(key,moves.get(key,100)) for key in MOVEMENT_LIMITS} # Percent of BO2's defaults.
         theme=profile.get('theme',{});self.theme={**DEFAULT_THEME,**{key:theme[key] for key in DEFAULT_THEME if key in theme}}
         self.replay_note='';self.replay_error_shown=False
@@ -258,7 +259,11 @@ class Core:
         write_atomic(ROOT/'profile.json',json.dumps({'cod4':self.cod4,'bo2':self.bo2,'mw2':self.mw2,'mw3':self.mw3,'mapping':mapping,'targets':self.targets,
             'replay':{'key':self.apply_name,'vk':self.apply_vk,'enabled':self.replay_enabled,'target':self.replay_target,'source':replay_source},
             'hotkeys':self.hotkeys,'favorites':sorted(self.favorites),'saved_sets':self.saved_sets,
-            'freelook':{'key':self.freelook_name,'vk':self.freelook_vk,'enabled':self.freelook_enabled,'speed':self.freelook_speed},'movement':self.movement,'theme':self.theme},indent=2),backup=True)
+            'freelook':{'key':self.freelook_name,'vk':self.freelook_vk,'enabled':self.freelook_enabled,'speed':self.freelook_speed},'movement':self.movement,'theme':self.theme,'setup_done':self.setup_done},indent=2),backup=True)
+    def set_setup_done(self,done):self.setup_done=bool(done);self.save();self.ui.changed('setup')
+    def set_folder(self,key,path):
+        """Set one game folder (the Setup tab's Browse buttons)."""
+        setattr(self,key,path);self.save();self.ui.changed('folders')
     def set_folders(self,cod4,mw2,bo2,mw3=None):
         self.cod4,self.mw2,self.bo2=cod4,mw2,bo2
         if mw3 is not None:self.mw3=mw3

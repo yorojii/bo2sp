@@ -1,5 +1,6 @@
 {
   "tabs": [
+    "Setup",
     "\u2605 Favorites",
     "COD4",
     "MW2",
@@ -11,6 +12,7 @@
     "Settings",
     "About"
   ],
+  "setup_tab_rules": true,
   "empty_game_tab_hidden": true,
   "short_tab_names": true,
   "header_sorting": true,
