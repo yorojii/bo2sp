@@ -11,17 +11,19 @@ restore, closing the tool or restarting BO2 brings the originals back.
 First run
 1. Unzip anywhere and keep the whole folder together (_internal, tools).
    No Python or other install is needed.
-2. Open BO2SP.exe. It looks for your games automatically (a running
-   BO2, Steam libraries, X:\Games and similar folders). Check or set them
-   in Settings > Game folders.
-3. Settings > Build libraries. Tick the games to extract (games found and
-   not yet in your library are ticked) and click Build libraries. This
-   takes several minutes; progress shows at the bottom. Click again to
-   cancel; building again continues where it stopped.
-4. Click "Launch BO2 & apply" (top right), or start BO2 yourself; the tool
+2. Open BO2SP.exe. It opens on the Setup tab, which walks you through:
+   - Game folders: found automatically (a running BO2, Steam libraries,
+     X:\Games and similar folders); Browse to fix any.
+   - Build libraries: tick the games to extract and click Build libraries.
+     This takes several minutes; progress shows at the bottom. Click again
+     to cancel; building again continues where it stopped.
+   - Install Third Person Camera: matches you host start in third person
+     (hold F and press 1 to switch views).
+   - Your look (Terminal, iOS or Android) and your keys.
+   Setup comes back every launch until at least one game's animations are
+   built. Settings > Run setup again reopens it later.
+3. Click "Launch BO2 & apply" (top right), or start BO2 yourself; the tool
    attaches to it.
-5. Settings > Install Third Person Camera, once, to play custom matches you
-   host in third person (hold F and press 1 to switch views).
 
 Libraries (built from your own installs)
 - COD4: single-player and multiplayer character animations.
