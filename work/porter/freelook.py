@@ -47,6 +47,7 @@ kernel.GetModuleHandleW.argtypes=[wintypes.LPCWSTR];kernel.GetModuleHandleW.rest
 # name pointer at +0, type at +0x10, current value at +0x18. Dvars are found by name, not address.
 DVAR_POOL=0x400000+0x261FC48;DVAR_COUNT=0x400000+0x267FC4C;DVAR_SIZE=0x60;DVAR_FLOAT=2
 WM_MOUSEMOVE=0x200;WM_MOUSEWHEEL=0x20A;LLMHF_INJECTED=1;LLKHF_INJECTED=0x10
+WM_APP_HOOK_MOUSE=0x8001;WM_APP_UNHOOK_MOUSE=0x8002 # Thread messages: the mouse hook exists only while freelook is held.
 ALT_KEYS=(0x12,0xA4,0xA5);SYSTEM_COMBO_KEYS=(0x09,0x73,0x0D) # Tab, F4, Enter
 def matches(key,vk):return vk in ALT_KEYS if key==0x12 else vk==key
 
@@ -82,7 +83,13 @@ class CameraDvars:
         if self.handle:kernel.CloseHandle(self.handle);self.handle=None
 
 class Freelook:
-    """Mouse hook plus a 100 Hz key poll. configure() sets the key, game pid and on/off at any time."""
+    """Keyboard hook plus a 100 Hz key poll; the mouse hook is installed only while freelook is held.
+
+    A low-level mouse hook sees every mouse event system-wide. Python handles them one at a time and
+    shares the interpreter with the tool's other threads, so a hook left in place all session delays
+    mouse input and lets it arrive in bursts (felt in game as raised or uneven sensitivity). Hooking only
+    for the moments freelook is active keeps normal play untouched. configure() sets the key, game pid
+    and on/off at any time."""
     def __init__(self,degrees_per_pixel=0.15,range_step=15.0):
         self.config=(0x12,0,False);self.degrees_per_pixel=degrees_per_pixel;self.range_step=range_step
         self.camera=None;self.active=False;self.saved=None;self.angle=0.0;self.range=0.0;self.held=False;self.handed_back=False
@@ -100,8 +107,10 @@ class Freelook:
             self.camera=CameraDvars(pid)
         self.saved=(self.camera.get(self.camera.angle),self.camera.get(self.camera.range))
         self.angle,self.range=self.saved;self.active=True;self._note(f'freelook on (angle {self.angle:.1f}, range {self.range:.0f})')
+        if self.thread_id:u.PostThreadMessageW(self.thread_id,WM_APP_HOOK_MOUSE,0,0) # After active is set, or the hook thread ignores it.
     def _end(self):
         self.active=False
+        if self.thread_id:u.PostThreadMessageW(self.thread_id,WM_APP_UNHOOK_MOUSE,0,0)
         if self.saved and self.camera:
             try:self.camera.set(self.camera.angle,self.saved[0]);self.camera.set(self.camera.range,self.saved[1])
             except OSError as e:self.error=str(e)
@@ -161,8 +170,6 @@ class Freelook:
         try:
             self.thread_id=kernel.GetCurrentThreadId();msg=wintypes.MSG()
             u.PeekMessageW(ctypes.byref(msg),None,0,0,0) # Create this thread's message queue.
-            self.hook=u.SetWindowsHookExW(14,self.callback,kernel.GetModuleHandleW(None),0)
-            if not self.hook:raise OSError(ctypes.get_last_error(),'Cannot listen for mouse movement')
             self.key_hook=u.SetWindowsHookExW(13,self.key_callback,kernel.GetModuleHandleW(None),0)
             if not self.key_hook:raise OSError(ctypes.get_last_error(),'Cannot listen for the freelook key')
             self.ready.set()
@@ -170,6 +177,11 @@ class Freelook:
                 result=u.GetMessageW(ctypes.byref(msg),None,0,0)
                 if result==0:break
                 if result==-1:raise OSError(ctypes.get_last_error(),'Freelook message loop stopped')
+                if msg.message==WM_APP_HOOK_MOUSE and not self.hook and self.active: # Hooks must be set on this looping thread.
+                    self.hook=u.SetWindowsHookExW(14,self.callback,kernel.GetModuleHandleW(None),0)
+                    if not self.hook:self.error=f'Cannot listen for mouse movement ({ctypes.get_last_error()})'
+                elif msg.message==WM_APP_UNHOOK_MOUSE and self.hook and not self.active:
+                    u.UnhookWindowsHookEx(self.hook);self.hook=None
         except Exception as e:self.error=str(e)
         finally:
             if self.hook:u.UnhookWindowsHookEx(self.hook);self.hook=None
